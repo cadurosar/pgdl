@@ -1,0 +1,560 @@
+{
+  "0": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 64
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 1
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "relu"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.875,
+      "test_acc": 0.9
+    }
+  },
+  "1": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 64
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 1
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "tanh"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.895,
+      "test_acc": 0.92
+    }
+  },
+  "2": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 64
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 2
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "relu"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.935,
+      "test_acc": 0.91
+    }
+  },
+  "3": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 64
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 2
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "tanh"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.95,
+      "test_acc": 0.96
+    }
+  },
+  "4": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 64
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 3
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "relu"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.97,
+      "test_acc": 0.95
+    }
+  },
+  "5": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 64
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 3
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "tanh"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.985,
+      "test_acc": 0.96
+    }
+  },
+  "6": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 128
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 1
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "relu"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.955,
+      "test_acc": 0.96
+    }
+  },
+  "7": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 128
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 1
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "tanh"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.955,
+      "test_acc": 0.97
+    }
+  },
+  "8": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 128
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 2
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "relu"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.975,
+      "test_acc": 0.96
+    }
+  },
+  "9": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 128
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 2
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "tanh"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.98,
+      "test_acc": 0.95
+    }
+  },
+  "10": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 128
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 3
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "relu"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.98,
+      "test_acc": 0.97
+    }
+  },
+  "11": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 128
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 3
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "tanh"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.99,
+      "test_acc": 0.96
+    }
+  },
+  "12": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 256
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 1
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "relu"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.965,
+      "test_acc": 0.96
+    }
+  },
+  "13": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 256
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 1
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "tanh"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.955,
+      "test_acc": 0.96
+    }
+  },
+  "14": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 256
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 2
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "relu"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.985,
+      "test_acc": 0.97
+    }
+  },
+  "15": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 256
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 2
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "tanh"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.985,
+      "test_acc": 0.96
+    }
+  },
+  "16": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 256
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 3
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "relu"
+      }
+    },
+    "metrics": {
+      "train_acc": 1.0,
+      "test_acc": 0.98
+    }
+  },
+  "17": {
+    "hparams": {
+      "num_units": {
+        "possible_values": [
+          64,
+          128,
+          256
+        ],
+        "current_value": 256
+      },
+      "num_layers": {
+        "possible_values": [
+          1,
+          2,
+          3
+        ],
+        "current_value": 3
+      },
+      "activation_function": {
+        "possible_values": [
+          "relu",
+          "tanh"
+        ],
+        "current_value": "tanh"
+      }
+    },
+    "metrics": {
+      "train_acc": 0.99,
+      "test_acc": 0.98
+    }
+  }
+}

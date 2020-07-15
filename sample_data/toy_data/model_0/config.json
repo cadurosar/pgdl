@@ -1,0 +1,16 @@
+{
+  "model_config": [
+    {
+      "layer_name": "Dense",
+      "activation": "relu",
+      "units": 64
+    },
+    {
+      "layer_name": "Dense",
+      "units": 2
+    }
+  ],
+  "input_shape": [
+    3
+  ]
+}
