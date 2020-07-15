@@ -39,7 +39,7 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |                  Measure                  | Public | Private | Task1 Public | Task 2 Public | Task 4 Private | Task 5 Private |
 |:-----------------------------------------:|:------:|:-------:|:------------:|:-------------:|:--------------:|:--------------:|
 | Baseline 1 - Distance from initialization |  4.92  |   2.02  |     5.13     |      4.71     |      2.78      |      1.26      |
-|           Baseline 2 - Jacobian           |        |   4.19  |              |               |      1.09      |      7.30      |
+|           Baseline 2 - Jacobian           |  2.04  |   4.19  |     0.94     |      3.15     |      1.09      |      7.30      |
 |           Baseline 3 - Sharpness          |        |         |              |               |                |                |
 |                                           |        |         |              |               |                |                |
 |                                           |        |         |              |               |                |                |
