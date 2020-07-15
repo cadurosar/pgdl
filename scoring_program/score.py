@@ -75,7 +75,10 @@ def check_data_validity(model_specs):
   def get_index(config):
       index = []
       for hp, hpv in zip(ordered_hpnames, possible_values):
-          index.append(hpv.index(config[hp]["current_value"]))
+          if hp == "convwidth":
+              index.append(hpv.index(int(config[hp]["current_value"])))
+          else:
+              index.append(hpv.index(config[hp]["current_value"]))
       return index
 
   shape = [len(pv) for pv in possible_values]
@@ -184,7 +187,7 @@ if __name__ == "__main__":
             check_data_validity(model_specs)
 
             if len(model_specs) != len(prediction):
-            	raise ValueError("Prediction shape={} instead of Solution shape={}".format(len(prediction), len(model_specs)))
+                raise ValueError("Prediction shape={} instead of Solution shape={}".format(len(prediction), len(model_specs)))
             try:
                 # Compute the score prescribed by the metric file
                 print('Start computing score for {}'.format(basename))
@@ -195,6 +198,7 @@ if __name__ == "__main__":
                 html_file.write(
                     "<pre>======= Set %d" % set_num + " (" + basename.capitalize() + "): " + metric_name + "(" + score_name + ")=%0.12f =======\n" % score)
             except Exception as inst:
+                print("fuuu")
                 raise Exception('Error in calculation of the specific score of the task: \n {}'.format(inst))
             # record score for individual tasks
             task_scores.append(score)
