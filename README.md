@@ -54,9 +54,9 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |                  Time (min)               | Task1 Public | Task 2 Public | Task 4 Private | Task 5 Private |
 |:-----------------------------------------:|:------------:|:-------------:|:--------------:|:--------------:|
 |          *Maximum time allowed*           |              |               |      *480*     |     *320*      |
-| Baseline 1 - Distance from initialization |              |               |      190       |      103       |
+| Baseline 1 - Distance from initialization |              |               |                |                |
 |           Baseline 2 - Jacobian           |              |               |                |                |
-|           Baseline 3 - Sharpness          |              |               |                |                |
+|           Baseline 3 - Sharpness          |              |               |       190      |      103       |
 |  Smoothness Gap (100 100-graphs-k=5)      |              |               |                |                |
 |  Smoothness Gap (Max 100-graphs-k=5)      |              |               |                |                |
 |                                           |              |               |                |                |
