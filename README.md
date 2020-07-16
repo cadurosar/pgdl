@@ -51,9 +51,11 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 
 Table generated with https://www.tablesgenerator.com/markdown_tables:
 
-|                  Measure                  | Task1 Public | Task 2 Public | Task 4 Private | Task 5 Private |
+|                  Time (min)               | Task1 Public | Task 2 Public | Task 4 Private | Task 5 Private |
 |:-----------------------------------------:|:------------:|:-------------:|:--------------:|:--------------:|
-| Baseline 1 - Distance from initialization |              |               |                |                |
+|           Maximum time allowed            |              |               |      480       |      320       |
+|:-----------------------------------------:|:------------:|:-------------:|:--------------:|:--------------:|
+| Baseline 1 - Distance from initialization |              |               |      190       |      103       |
 |           Baseline 2 - Jacobian           |              |               |                |                |
 |           Baseline 3 - Sharpness          |              |               |                |                |
 |  Smoothness Gap (100 100-graphs-k=5)      |              |               |                |                |
