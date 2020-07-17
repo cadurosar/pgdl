@@ -41,7 +41,7 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 | Baseline 1 - Distance from initialization |  4.92  |   2.02  |     5.13     |      4.71     |      2.78      |      1.26      |
 |           Baseline 2 - Jacobian           |  2.04  |   4.19  |     0.94     |      3.15     |      1.09      |      7.30      |
 |           Baseline 3 - Sharpness          |  0.00  |   0.82  |     0.00     |      0.00     |      0.85      |      0.79      |
-|  Smoothness Gap (Cos 10 500-graphs-k=20)  |  19.58 |   0.72  |     9.31     |      19.58    |      0.44      |      1.00      |
+|  Smoothness Gap (Cos 10 500-graphs-k=20)  |  14.45 |   0.72  |     9.31     |      19.58    |      0.44      |      1.00      |
 |                                           |        |         |              |               |                |                |
 |                                           |        |         |              |               |                |                |
 
