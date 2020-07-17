@@ -29,52 +29,65 @@ def knn_over_matrix(matrix,k):
     weighted_adjacence_matrix = adjacence_matrix * matrix # Create weigthed adjacence_matrix
     return weighted_adjacence_matrix
 
+@tf.function()
+def knn_tf(matrix,k):
+	values, indices = tf.nn.top_k(matrix, k=k+1, sorted=True)
+	thresholds = tf.reshape(values[:,-1],(-1,1))
+	adjacence_matrix = tf.cast((matrix >= thresholds),tf.float32) # Create adjacence_matrix
+	adjacence_matrix = tf.linalg.set_diag(adjacence_matrix, tf.zeros(adjacence_matrix.shape[0:-1]))
+	adjacence_matrix = tf.clip_by_value(adjacence_matrix+tf.transpose(adjacence_matrix),0,1)
+	return adjacence_matrix * matrix
+	
+@tf.function()
 def get_distances(a, b):
     return tf.math.sqrt(tf.math.reduce_sum(tf.math.square(tf.expand_dims(a, axis=1) - tf.expand_dims(b, axis=0)),axis=2))
 
+@tf.function()
+def cosine(values):
+    values = tf.math.l2_normalize(values,axis=1)
+    values = tf.matmul(values,tf.transpose(values))
+    values = tf.clip_by_value(values,0,1)
+    return values
 
-def generate_laplacian(values,k=5):
+def generate_laplacian(values,k=20,use_mask=False,mask=None):
     values = tf.reshape(values,[values.shape[0],-1])
-    matrix = get_distances(values,values)
-    matrix = tf.math.exp(-2*matrix).numpy()
-    adj = knn_over_matrix(matrix,k)
-#    adj = matrix
-    degree = np.sum(adj,axis=1)
-    degree[degree<=0] = 1
-    degree = np.power(degree,-1/2)
-    degree = np.diag(degree)
-    new_adj = np.matmul(degree,np.matmul(adj,degree))
-    laplacian = np.eye(new_adj.shape[0]) - new_adj
-#    laplacian = degree - adj
+    matrix = cosine(values)#.numpy()
+    if use_mask:
+        matrix = matrix*mask
+    adj = knn_tf(matrix,k)
+    degree = tf.reduce_sum(adj,axis=1)
+    degree = tf.linalg.diag(degree)
+    laplacian = degree - adj
     return laplacian
 
+@tf.function()
 def smoothness(laplacian,targets):
-    smoothness = np.matmul(targets.T,laplacian)
-    smoothness = np.matmul(smoothness,targets)
-    smoothness = np.trace(smoothness)
-    if smoothness < 1e-4:
-        smoothness = 0
+    smoothness = tf.matmul(tf.transpose(targets),laplacian)
+    smoothness = tf.matmul(smoothness,targets)
+    smoothness = tf.trace(smoothness)
     return smoothness/(2*50*1000)
+
 
 
 def complexity(model, dataset):
 	@tf.function()
-	def get_output(inputs):
+	def get_smoothness(inputs,labels):
 		"""Get output from nn with respect to intermediate layers."""
-		last_layer = model(inputs)
-		penultimate_layer = model.layers[-1]._last_seen_input
-		return last_layer,penultimate_layer
+		output = model(inputs)
+		one_hot = tf.one_hot(labels,tf.reduce_max(labels)+1)
+		output = smoothness(generate_laplacian(output),one_hot)
+		outputs = list()
+		for layer in model.layers[-2:]:
+			outputs.append(smoothness(generate_laplacian(layer._last_seen_input),one_hot))
+		outputs.append(output)
+		return outputs
 	values = list()
-	for i, (x, y) in enumerate(dataset.batch(100)):
-		last,penultimate = get_output(x)
-		n_values = np.max(y) + 1
-		one_hot = np.eye(n_values)[y]
-		lap_last = generate_laplacian(last)
-		lap_penultimate = generate_laplacian(penultimate)
-		smoothness_last = smoothness(lap_last,one_hot)
-		smoothness_penultimate = smoothness(lap_penultimate,one_hot)
-		smoothness_gap = np.square(smoothness_last - smoothness_penultimate)#/max(smoothness_last,smoothness_penultimate)
-		values.append(smoothness_gap)
-		if i == 100:  # only 3000 examples for efficiency
+	for i, (x, y) in enumerate(dataset.batch(500,drop_remainder=True)):
+		smoothnesses = get_smoothness(x,y)
+		smoothness_rate = list()
+		for ii in range(1,len(smoothnesses)):
+			smoothness_rate.append(abs(smoothnesses[ii-1]-smoothnesses[ii]))
+		values.append(np.mean(smoothness_rate))
+		if i == 10:  # only 10000 examples for efficiency
 			break
-	return np.mean(values)
+	return np.median(values)

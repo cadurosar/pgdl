@@ -40,10 +40,8 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |:-----------------------------------------:|:------:|:-------:|:------------:|:-------------:|:--------------:|:--------------:|
 | Baseline 1 - Distance from initialization |  4.92  |   2.02  |     5.13     |      4.71     |      2.78      |      1.26      |
 |           Baseline 2 - Jacobian           |  2.04  |   4.19  |     0.94     |      3.15     |      1.09      |      7.30      |
-|           Baseline 3 - Sharpness          |  0.00  |   0.82  |     0.00     |      0.00     |     0.0085     |     0.0079     |
-|  Smoothness Gap (100 100-graphs-k=5)      |  4.37  |         |     5.06     |      3.68     |                |                |
-|  Smoothness Gap (Max 100-graphs-k=5)      |  4.09  |         |     4.64     |      3.54     |                |                |
-|                                           |        |         |              |               |                |                |
+|           Baseline 3 - Sharpness          |  0.00  |   0.82  |     0.00     |      0.00     |      0.85      |      0.79      |
+|  Smoothness Gap (Cos 10 500-graphs-k=20)  |  19.58 |   0.72  |     9.31     |      19.58    |      0.44      |      1.00      |
 |                                           |        |         |              |               |                |                |
 |                                           |        |         |              |               |                |                |
 
@@ -53,12 +51,10 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 
 |                  Time (min)               | Task1 Public | Task 2 Public | Task 4 Private | Task 5 Private |
 |:-----------------------------------------:|:------------:|:-------------:|:--------------:|:--------------:|
-|          *Maximum time allowed*           |              |               |      *480*     |     *320*      |
-| Baseline 1 - Distance from initialization |              |               |                |                |
-|           Baseline 2 - Jacobian           |              |               |                |                |
+|          *Maximum time allowed*           |    *480*     |    *270*      |      *480*     |     *320*      |
+| Baseline 1 - Distance from initialization |              |               |       0.46     |     0.26       |
+|           Baseline 2 - Jacobian           |              |               |       104      |     67         |
 |           Baseline 3 - Sharpness          |              |               |       190      |      103       |
-|  Smoothness Gap (100 100-graphs-k=5)      |              |               |                |                |
-|  Smoothness Gap (Max 100-graphs-k=5)      |              |               |                |                |
-|                                           |              |               |                |                |
+|  Smoothness Gap (Cos 10 500-graphs-k=20)  |     6        |     3         |       15       |     10         |
 |                                           |              |               |                |                |
 |                                           |              |               |                |                |
