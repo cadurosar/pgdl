@@ -23,7 +23,7 @@ Usage:
 
 - if you wish to test on the larger public data, download the public data and run:
 
-  `python ingestion_program/ingestion.py **path/to/public/inptu_data** sample_result_submission ingestion_program sample_code_submission`
+  `python ingestion_program/ingestion.py **path/to/public/input_data** sample_result_submission ingestion_program sample_code_submission`
 
 - if you wish to compute the score of your submission locally, you can run the scoring program:
 
