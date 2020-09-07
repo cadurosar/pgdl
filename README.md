@@ -45,6 +45,7 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |  Smoothness Gap (Cos 10 500-graphs-k=20)  |  14.45 |   0.72  |     9.31     |      19.58    |      0.44      |      1.00      |
 |  Smoothness Last (RBF 20 500-graphs-k=50) |  9.38  |   1.38  |     8.17     |      10.58    |      1.71      |      1.06      |
 |  Smoothness Gap (RBF 20 500-graphs-k=50)  |  5.47  |         |     4.95     |      6.00     |                |                |
+|  Smoothness Max (Binary 1 550-graphs-k=1) |  32.59 |   0.37  |     27.74    |      37.44    |      0.21      |      0.55      |
 
 # Time spent on the public set/private set
 
