@@ -8,14 +8,14 @@ import os
 import numpy as np
 import tensorflow as tf
 try:
-    raise ValueError
+    # raise ValueError
     import tqdm
     tqdm_pb = True
 except:
     tqdm_pb = False
 
 
-def raw_batchs(dataset, batch_size=16):
+def raw_batchs(dataset, batch_size=256):
     return dataset.repeat().shuffle(buffer_size=100).batch(batch_size)
 
 def mixup_pairs(dataset):
@@ -46,7 +46,7 @@ def mix(model, mix_policy, x, indexes, lbda):
 def criterion(logits, y):
     return tf.nn.sparse_softmax_cross_entropy_with_logits(y, logits)
 
-def mixup_score(model, dataset, mix_policy, alpha=2., num_batchs_max=10):
+def mixup_score(model, dataset, mix_policy, alpha=2., num_batchs_max=256):
     losses = []
     progress = tqdm.tqdm(range(num_batchs_max), leave=False) if tqdm_pb else range(num_batchs_max)
     for (x, indexes, y, yt), _ in zip(mixup_pairs(dataset), progress):
