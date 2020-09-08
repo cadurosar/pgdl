@@ -92,7 +92,7 @@ the_date = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
 
 import tensorflow as tf
 # enable tf 2.0 behavior
-tf.compat.v1.enable_v2_behavior()
+# tf.compat.v1.enable_v2_behavior()
 
 filter_filenames = [".ds_store", ".DS_Store", "__MACOSX"]
 

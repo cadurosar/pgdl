@@ -1,13 +1,22 @@
 """Manifold Mixup Score.
 
-Command: python3 ingestion_program/ingestion.py ../datasets/public_data sample_result_submission ingestion_program manifold_mixup"""
+Command: python3 ingestion_program/ingestion_tqdm.py ../datasets/public_data sample_result_submission ingestion_program manifold_mixup
 
+python scoring_program/score.py ../datasets/public_data sample_result_submission scores"""
+
+import os
 import numpy as np
 import tensorflow as tf
+try:
+    raise ValueError
+    import tqdm
+    tqdm_pb = True
+except:
+    tqdm_pb = False
 
 
-def raw_batchs(dataset, batch_size=256):
-    return dataset.repeat().shuffle(buffer_size=10000).batch(batch_size)
+def raw_batchs(dataset, batch_size=16):
+    return dataset.repeat().shuffle(buffer_size=100).batch(batch_size)
 
 def mixup_pairs(dataset):
     dataset = raw_batchs(dataset)
@@ -16,26 +25,58 @@ def mixup_pairs(dataset):
         yield x, indexes, y, tf.gather(y, indexes)
 
 def mix(model, mix_policy, x, indexes, lbda):
+    z = tf.gather(x, indexes)
     if mix_policy == 'input':
-        shuffled = tf.gather(x, indexes)
-        # print(x.shape, shuffled.shape, (1.-lbda).shape, lbda.shape)
-        mixed = lbda*x + (1.-lbda)*shuffled
+        mixed = lbda*x + (1.-lbda)*z
         mixed = model(mixed)
-    else:
-        raise ValueError
-    return mixed
+        return mixed
+    elif mix_policy == 'manifold':
+        def forward(layer, *inputs):
+            if len(inputs) == 1:
+                return layer(inputs[0])
+            return layer(inputs[0]), layer(inputs[1])
+        inputs = x, z
+        for layer in model.layers:
+            inputs = forward(layer, *inputs)
+            if layer.name == 'Flatten':
+                inputs = lbda*inputs[0] + (1.-lbda)*inputs[1]
+        return inputs
+    raise ValueError
 
 def criterion(logits, y):
     return tf.nn.sparse_softmax_cross_entropy_with_logits(y, logits)
 
-def mixup_score(model, dataset, mix_policy, alpha=2., num_batchs_max=256):
+def mixup_score(model, dataset, mix_policy, alpha=2., num_batchs_max=10):
     losses = []
-    for (x, indexes, y, yt), _ in zip(mixup_pairs(dataset), range(num_batchs_max)):
-        lbda = np.random.beta(alpha, alpha, size=(y.shape[0],1))
+    progress = tqdm.tqdm(range(num_batchs_max), leave=False) if tqdm_pb else range(num_batchs_max)
+    for (x, indexes, y, yt), _ in zip(mixup_pairs(dataset), progress):
+        shape = (y.shape[0],) + (1,)*(len(x.shape)-1)
+        lbda = np.random.beta(alpha, alpha, size=shape)
         mixed = mix(model, mix_policy, x, indexes, lbda)
         loss = lbda*criterion(mixed, y) + (1.-lbda)*criterion(mixed, yt)
         losses.append(loss)
     return float(tf.math.reduce_mean(losses))
+
+#######################################################################
+############################### Lipschitz #############################
+#######################################################################
+
+
+def evaluate_lip_const(model, x, eps=1e-4, seed=None):
+    y_pred = model.predict(x)
+    # x = np.repeat(x, 100, 0)
+    # y_pred = np.repeat(y_pred, 100, 0)
+    x_var = x + K.random_uniform(
+        shape=x.shape, minval=eps * 0.25, maxval=eps, seed=seed
+    )
+    y_pred_var = model.predict(x_var)
+    dx = x - x_var
+    dfx = y_pred - y_pred_var
+    ndx = K.sum(K.square(dx), axis=range(1, len(x.shape)))
+    ndfx = K.sum(K.square(dfx), axis=range(1, len(y_pred.shape)))
+    lip_cst = K.sqrt(K.max(ndfx / ndx))
+    print("lip cst: %.3f" % lip_cst)
+    return lip_cst
 
 def lipschitz_naive(model, dataset):
     from deel.lip import evaluate_lip_const
@@ -47,5 +88,6 @@ def lipschitz_naive(model, dataset):
     return tf.math.reduce_mean(scores)
 
 def complexity(model, dataset):
-    avg_loss = mixup_score(model, dataset, mix_policy='input')
+    os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+    avg_loss = mixup_score(model, dataset, mix_policy='manifold')
     return avg_loss
