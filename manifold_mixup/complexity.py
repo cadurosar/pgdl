@@ -6,8 +6,8 @@ import numpy as np
 import tensorflow as tf
 
 
-def raw_batchs(dataset, batch_size=128):
-    return dataset.repeat().shuffle(buffer_size=1024).batch(batch_size)
+def raw_batchs(dataset, batch_size=256):
+    return dataset.repeat().shuffle(buffer_size=10000).batch(batch_size)
 
 def mixup_pairs(dataset):
     dataset = raw_batchs(dataset)
@@ -28,7 +28,7 @@ def mix(model, mix_policy, x, indexes, lbda):
 def criterion(logits, y):
     return tf.nn.sparse_softmax_cross_entropy_with_logits(y, logits)
 
-def mixup_score(model, dataset, mix_policy, alpha=2., num_batchs_max=128):
+def mixup_score(model, dataset, mix_policy, alpha=2., num_batchs_max=256):
     losses = []
     for (x, indexes, y, yt), _ in zip(mixup_pairs(dataset), range(num_batchs_max)):
         lbda = np.random.beta(alpha, alpha, size=(y.shape[0],1))
