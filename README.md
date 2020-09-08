@@ -42,9 +42,10 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |           Baseline 2 - Jacobian           |  2.04  | **4.19**|     0.94     |      3.15     |      1.09      |      7.30      |
 |           Baseline 3 - Sharpness          |  0.00  |   0.82  |     0.00     |      0.00     |      0.85      |      0.79      |
 |           Baseline 4 - VC Dimension       |  0.02  |   0.04  |     0.00     |      0.00     |      0.85      |      0.79      |
-|  Smoothness Gap (Cos 10 500-graphs-k=20)  |**14.45**|   0.72  |     9.31     |      19.58    |      0.44      |      1.00      |
+|  Smoothness Gap (Cos 10 500-graphs-k=20)  |  14.45 |   0.72  |     9.31     |      19.58    |      0.44      |      1.00      |
 |  Smoothness Last (RBF 20 500-graphs-k=50) |  9.38  |   1.38  |     8.17     |      10.58    |      1.71      |      1.06      |
 |  Smoothness Gap (RBF 20 500-graphs-k=50)  |  5.47  |         |     4.95     |      6.00     |                |                |
+|  Smoothness Max (Binary 1 550-graphs-k=1) |**32.6**|   0.37  |     27.74    |      37.44    |      0.21      |      0.55      |
 |                Margin gap                 |  3.04  |   2.59  |     2.13     |      3.96     |      3.96      |      1.22      |
 
 # Time spent on the public set/private set
