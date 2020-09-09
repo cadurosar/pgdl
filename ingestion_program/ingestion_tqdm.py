@@ -95,7 +95,6 @@ logging.getLogger("tensorflow").setLevel(logging.ERROR)
 import tensorflow as tf
 # enable tf 2.0 behavior
 tf.compat.v1.enable_v2_behavior()
-<<<<<<< Updated upstream
 # tf.logging.set_verbosity(tf.logging.ERROR)
 
 filter_filenames = [".ds_store", ".DS_Store", "__MACOSX"]
