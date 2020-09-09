@@ -169,7 +169,7 @@ def complexity(model, dataset):
         """Get output from nn with respect to intermediate layers."""
 #       output = model(inputs)
         one_hot = tf.one_hot(labels,tf.reduce_max(labels)+1)
-        results, one_hot = mixup_output(model, inputs, labels, one_hot, "manifold",2.0)
+        results, one_hot = mixup_output(model, inputs, labels, one_hot, "input",2.0)
         outputs = list()
         layers_to_get = (len(model.layers)//3)+1
 #       layers_to_get = 3
