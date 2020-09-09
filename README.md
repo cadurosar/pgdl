@@ -47,6 +47,7 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |  Smoothness Gap (RBF 20 500-graphs-k=50)  |  5.47  |         |     4.95     |      6.00     |                |                |
 |  Smoothness Max (Binary 1 550-graphs-k=1) |**32.6**|   0.37  |     27.74    |      37.44    |      0.21      |      0.55      |
 |                Margin gap                 |  3.04  |   2.59  |     2.13     |      3.96     |      3.96      |      1.22      |
+|  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |  15.6  |   5.99  |     6.31     |      24.35    |      7.88      |      4.10      |
 
 # Time spent on the public set/private set
 
@@ -63,3 +64,4 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |                                           |              |               |                |                |
 |                                           |              |               |                |                |
 |                Margin gap                 |      38      |       26      |       81       |       51       |
+|  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |   472        |   110         |      143       |       103      |
