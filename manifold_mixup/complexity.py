@@ -54,7 +54,7 @@ def criterion(logits, y):
 def mixup_score(model, dataset, num_batchs_max, mix_policy, alpha=2.):
     losses = []
     mix_fn = mix_input if mix_policy == 'input' else mix_manifold
-    progress = tqdm.tqdm(range(num_batchs_max), leave=False) if tqdm_pb else range(num_batchs_max)
+    progress = tqdm.tqdm(range(num_batchs_max), leave=False, ascii=True) if tqdm_pb else range(num_batchs_max)
     for (x, indexes, y, yt), _ in zip(mixup_pairs(dataset), progress):
         shape = (y.shape[0],) + (1,)*(len(x.shape)-1)
         lbda = tf.constant(np.random.beta(alpha, alpha, size=shape), dtype=tf.float32)
@@ -89,7 +89,7 @@ def evaluate_lip(model, x, labels):
 def lipschitz_score(model, dataset, num_batchs_max):
     dataset = raw_batchs(dataset)
     scores = []
-    progress = tqdm.tqdm(range(num_batchs_max), leave=False) if tqdm_pb else range(num_batchs_max)
+    progress = tqdm.tqdm(range(num_batchs_max), leave=False, ascii=True) if tqdm_pb else range(num_batchs_max)
     for (x, labels), _ in zip(dataset, progress):
         score = evaluate_lip(model, x, labels)
         scores.append(score)
@@ -97,7 +97,7 @@ def lipschitz_score(model, dataset, num_batchs_max):
 
 def lipschitz_interpolation(model, dataset, num_batchs_max, alpha=2.):
     scores = []
-    progress = tqdm.tqdm(range(num_batchs_max), leave=False) if tqdm_pb else range(num_batchs_max)
+    progress = tqdm.tqdm(range(num_batchs_max), leave=False, ascii=True) if tqdm_pb else range(num_batchs_max)
     for (x, indexes, labels, _), _ in zip(mixup_pairs(dataset), progress):
         shape = (labels.shape[0],) + (1,)*(len(x.shape)-1)
         lbda = tf.constant(np.random.beta(alpha, alpha, size=shape), dtype=tf.float32)
