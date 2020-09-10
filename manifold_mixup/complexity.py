@@ -57,7 +57,7 @@ def mixup_score(model, dataset, num_batchs_max, mix_policy, alpha=2.):
     progress = tqdm.tqdm(range(num_batchs_max), leave=False) if tqdm_pb else range(num_batchs_max)
     for (x, indexes, y, yt), _ in zip(mixup_pairs(dataset), progress):
         shape = (y.shape[0],) + (1,)*(len(x.shape)-1)
-        lbda = tf.constant(np.random.beta(alpha, alpha, size=shape))
+        lbda = tf.constant(np.random.beta(alpha, alpha, size=shape), dtype=tf.float32)
         mixed = mix_fn(model, x, indexes, lbda)
         loss = lbda*criterion(mixed, y) + (1.-lbda)*criterion(mixed, yt)
         loss = tf.math.reduce_mean(loss)
@@ -95,9 +95,22 @@ def lipschitz_score(model, dataset, num_batchs_max):
         scores.append(score)
     return float(tf.math.reduce_mean(scores))
 
+def lipschitz_interpolation(model, dataset, num_batchs_max, alpha=2.):
+    scores = []
+    progress = tqdm.tqdm(range(num_batchs_max), leave=False) if tqdm_pb else range(num_batchs_max)
+    for (x, indexes, labels, _), _ in zip(mixup_pairs(dataset), progress):
+        shape = (labels.shape[0],) + (1,)*(len(x.shape)-1)
+        lbda = tf.constant(np.random.beta(alpha, alpha, size=shape), dtype=tf.float32)
+        z = tf.gather(x, indexes)
+        mixed = lbda*x + (1.-lbda)*z
+        score = evaluate_lip(model, mixed, labels)
+        scores.append(score)
+    return float(tf.math.reduce_mean(scores))
+
 def complexity(model, dataset):
     # model.summary()
-    num_batchs_max = 256
-    avg_loss = lipschitz_score(model, dataset, num_batchs_max)
+    num_batchs_max = 384
+    avg_loss = lipschitz_interpolation(model, dataset, num_batchs_max, alpha=2.)
+    # avg_loss = lipschitz_score(model, dataset, num_batchs_max)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
     return avg_loss
