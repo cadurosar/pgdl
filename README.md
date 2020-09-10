@@ -47,6 +47,9 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |  Smoothness Gap (RBF 20 500-graphs-k=50)  |  5.47  |         |     4.95     |      6.00     |                |                |
 |  Smoothness Max (Binary 1 550-graphs-k=1) |**32.6**|   0.37  |     27.74    |      37.44    |      0.21      |      0.55      |
 |                Margin gap                 |  3.04  |   2.59  |     2.13     |      3.96     |      3.96      |      1.22      |
+|         Input Mixup (256x256 samples)     |        |   3.63  |              |               |      0.41      |      6.85      |
+|      Lipschitz Norm (128x256 samples)     |        |   4.24  |              |               |      1.25      |      7.21      |
+|         Input Mixup Lipschitz Norm        |        |   4.35  |              |               |      1.18      |      7.52      |
 |  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |  15.6  |   5.99  |     6.31     |      24.35    |      7.88      |      4.10      |
 |  MIXUP Smoothness Last (Binary 100 500-graphs-k=1) |  16.04  |   7.29  |     3.12     |      28.97    |      9.34      |      5.37      |
 
@@ -60,7 +63,8 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |           Baseline 3 - Sharpness          |              |               |       190      |      103       |
 |           Baseline 4 - VC Dimension       |              |     0.5       |       190      |      103       |
 |  Smoothness Gap (Cos 10 500-graphs-k=20)  |      6       |     3         |       15       |     10         |
-|                                           |              |               |                |                |
-|                                           |              |               |                |                |
 |                Margin gap                 |      38      |       26      |       81       |       51       |
+|         Input Mixup (256x256 samples)     |              |               |       118      |       75       |
+|      Lipschitz Norm (128x256 samples)     |              |               |       193      |       120      |
+|         Input Mixup Lipschitz Norm        |              |               |       90       |       56       |
 |  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |   472        |   110         |      143       |       103      |
