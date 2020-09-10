@@ -109,7 +109,7 @@ def lipschitz_interpolation(model, dataset, num_batchs_max, alpha=2.):
 
 def complexity(model, dataset):
     # model.summary()
-    num_batchs_max = 384
+    num_batchs_max = 8   # 384
     avg_loss = lipschitz_interpolation(model, dataset, num_batchs_max, alpha=2.)
     # avg_loss = lipschitz_score(model, dataset, num_batchs_max)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
