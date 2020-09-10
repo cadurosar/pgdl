@@ -90,6 +90,8 @@ import glob
 
 the_date = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
 
+import logging
+logging.getLogger("tensorflow").setLevel(logging.ERROR)
 import tensorflow as tf
 # enable tf 2.0 behavior
 tf.compat.v1.enable_v2_behavior()

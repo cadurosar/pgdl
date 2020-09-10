@@ -50,6 +50,7 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |         Input Mixup (256x256 samples)     |        |   3.63  |              |               |      0.41      |      6.85      |
 |      Lipschitz Norm (128x256 samples)     |        |   4.24  |              |               |      1.25      |      7.21      |
 |         Input Mixup Lipschitz Norm        |        |   4.35  |              |               |      1.18      |      7.52      |
+|  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |  15.6  |   5.99  |     6.31     |      24.35    |      7.88      |      4.10      |
 
 # Time spent on the public set/private set
 
@@ -63,9 +64,8 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |           Baseline 3 - Sharpness          |              |               |       190      |      103       |
 |           Baseline 4 - VC Dimension       |              |     0.5       |       190      |      103       |
 |  Smoothness Gap (Cos 10 500-graphs-k=20)  |      6       |     3         |       15       |     10         |
-|                                           |              |               |                |                |
-|                                           |              |               |                |                |
 |                Margin gap                 |      38      |       26      |       81       |       51       |
 |         Input Mixup (256x256 samples)     |              |               |       118      |       75       |
 |      Lipschitz Norm (128x256 samples)     |              |               |       193      |       120      |
 |         Input Mixup Lipschitz Norm        |              |               |       90       |       56       |
+|  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |   472        |   110         |      143       |       103      |
