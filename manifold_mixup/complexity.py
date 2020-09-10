@@ -79,7 +79,7 @@ def evaluate_lip(model, x, labels):
     with tf.GradientTape(watch_accessed_variables=False) as tape:
         tape.watch(x)
         y = model(x)
-        y = tf.gather(y, indices=labels, batch_dims=1)
+        y = tf.gather(y, indices=labels, axis=1)  # axis=0 is batch dimension, axis=1 is logits
     dy_dx = tape.gradient(y, x)
     batch_squared_norm = tf.math.reduce_sum(dy_dx ** 2, axis=list(range(1,len(dy_dx.shape))))
     grad_penalty = penalty(batch_squared_norm, one_lipschitz=True)
