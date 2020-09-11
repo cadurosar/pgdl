@@ -12,11 +12,12 @@ import os
 import numpy as np
 import tensorflow as tf
 try:
-    raise 42
     import tqdm
-    tqdm_pb = True
+    def progress_bar(num_batchs):
+        return tqdm.tqdm(range(num_batchs), leave=False, ascii=True)
 except:
-    tqdm_pb = False
+    def progress_bar(num_batchs):
+        return range(num_batchs)
 
 
 def raw_batchs(dataset, batch_size=256):
@@ -48,13 +49,14 @@ def mix_input(model, x, indexes, lbda):
     mixed = model(mixed)
     return mixed
 
+@tf.function
 def criterion(logits, y):
     return tf.nn.sparse_softmax_cross_entropy_with_logits(y, logits)
 
 def mixup_score(model, dataset, num_batchs_max, mix_policy, alpha=2.):
     losses = []
     mix_fn = mix_input if mix_policy == 'input' else mix_manifold
-    progress = tqdm.tqdm(range(num_batchs_max), leave=False, ascii=True) if tqdm_pb else range(num_batchs_max)
+    progress = progress_bar(num_batchs_max)
     for (x, indexes, y, yt), _ in zip(mixup_pairs(dataset), progress):
         shape = (y.shape[0],) + (1,)*(len(x.shape)-1)
         lbda = tf.constant(np.random.beta(alpha, alpha, size=shape), dtype=tf.float32)
@@ -92,7 +94,7 @@ def evaluate_lip(model, x, labels, softmax):
 def lipschitz_score(model, dataset, num_batchs_max, softmax):
     dataset = raw_batchs(dataset)
     scores = []
-    progress = tqdm.tqdm(range(num_batchs_max), leave=False, ascii=True) if tqdm_pb else range(num_batchs_max)
+    progress = progress_bar(num_batchs_max)
     for (x, labels), _ in zip(dataset, progress):
         score = evaluate_lip(model, x, labels, softmax)
         scores.append(score)
@@ -100,7 +102,7 @@ def lipschitz_score(model, dataset, num_batchs_max, softmax):
 
 def lipschitz_interpolation(model, dataset, num_batchs_max, softmax, alpha=2.):
     scores = []
-    progress = tqdm.tqdm(range(num_batchs_max), leave=False, ascii=True) if tqdm_pb else range(num_batchs_max)
+    progress = progress_bar(num_batchs_max)
     for (x, indexes, labels, _), _ in zip(mixup_pairs(dataset), progress):
         shape = (labels.shape[0],) + (1,)*(len(x.shape)-1)
         lbda = tf.constant(np.random.beta(alpha, alpha, size=shape), dtype=tf.float32)
@@ -110,10 +112,53 @@ def lipschitz_interpolation(model, dataset, num_batchs_max, softmax, alpha=2.):
         scores.append(score)
     return float(tf.math.reduce_mean(scores))
 
+
+#######################################################################
+#################### Catastrophic forgetting ##########################
+#######################################################################
+
+def witness_set(model, dataset, num_batchs_witness):
+    xs, ys = [], []
+    progress = progress_bar(num_batchs_witness)
+    for (x, _, _, _), _ in zip(dataset, progress):
+        y = model(x)
+        xs.append(x)
+        ys.append(y)
+    return xs, ys
+
+def dumb_training(model, dataset, num_dumb_batchs):
+    progress = progress_bar(num_dumb_batchs)
+    opt = tf.keras.optimizers.Adam()
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    for (x, _, _, yt), _ in zip(dataset, progress):
+        with tf.GradientTape() as tape:
+            y = model(x)
+            loss = loss_fn(yt, y)
+        gradients = tape.gradient(loss, model.trainable_variables)
+        opt.apply_gradients(zip(gradients, model.trainable_variables))
+
+def witness_error(model, witness):
+    l2_dists = []
+    progress = progress_bar(len(witness[0]))
+    for x, y, _ in zip(*witness, progress):
+        logits = model(x)
+        dist = tf.norm(y - logits, axis=1)  # logits axis, not batch
+        l2_dists.append(dist)
+    return float(tf.math.reduce_mean(l2_dists))
+
+def catastrophic(model, dataset, num_batchs_witness, num_dumb_batchs):
+    dataset = mixup_pairs(dataset)
+    witness = witness_set(model, dataset, num_batchs_witness)
+    dumb_training(model, dataset, num_dumb_batchs)
+    loss = witness_error(model, witness)
+    return loss
+
 def complexity(model, dataset):
     # model.summary()
-    num_batchs_max = 256
-    avg_loss = lipschitz_interpolation(model, dataset, num_batchs_max, softmax=True, alpha=2.)
+    public_data = False
+    num_batchs_max = 8 if public_data else 256
+    # avg_loss = lipschitz_interpolation(model, dataset, num_batchs_max, softmax=True, alpha=2.)
     # avg_loss = lipschitz_score(model, dataset, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
+    avg_loss = catastrophic(model, dataset, num_batchs_witness=num_batchs_max, num_dumb_batchs=1)
     return avg_loss
