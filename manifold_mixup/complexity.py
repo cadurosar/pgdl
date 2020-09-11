@@ -153,12 +153,16 @@ def catastrophic(model, dataset, num_batchs_witness, num_dumb_batchs):
     loss = witness_error(model, witness)
     return loss
 
+#######################################################################
+############################# Complexity ##############################
+#######################################################################
+
 def complexity(model, dataset):
     # model.summary()
     public_data = False
     num_batchs_max = 8 if public_data else 256
-    # avg_loss = lipschitz_interpolation(model, dataset, num_batchs_max, softmax=True, alpha=2.)
+    avg_loss = lipschitz_interpolation(model, dataset, num_batchs_max, softmax=True, alpha=2.)
     # avg_loss = lipschitz_score(model, dataset, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
-    avg_loss = catastrophic(model, dataset, num_batchs_witness=num_batchs_max, num_dumb_batchs=1)
+    # avg_loss = catastrophic(model, dataset, num_batchs_witness=num_batchs_max, num_dumb_batchs=16)
     return avg_loss
