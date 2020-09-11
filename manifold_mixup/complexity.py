@@ -68,6 +68,7 @@ def mixup_score(model, dataset, num_batchs_max, mix_policy, alpha=2.):
 ############################### Lipschitz #############################
 #######################################################################
 
+@tf.function
 def penalty(batch_squared_norm, one_lipschitz=False):
     batch_norm = tf.math.sqrt(batch_squared_norm)
     if one_lipschitz:
@@ -75,10 +76,12 @@ def penalty(batch_squared_norm, one_lipschitz=False):
     return batch_norm
 
 @tf.function
-def evaluate_lip(model, x, labels):
+def evaluate_lip(model, x, labels, softmax):
     with tf.GradientTape(watch_accessed_variables=False) as tape:
         tape.watch(x)
         y = model(x)
+        if softmax:
+            y = tf.nn.softmax(y)
         y = tf.gather(y, indices=labels, axis=1)  # axis=0 is batch dimension, axis=1 is logits
     dy_dx = tape.gradient(y, x)
     batch_squared_norm = tf.math.reduce_sum(dy_dx ** 2, axis=list(range(1,len(dy_dx.shape))))
@@ -86,16 +89,16 @@ def evaluate_lip(model, x, labels):
     lips = tf.math.reduce_mean(grad_penalty)
     return lips
 
-def lipschitz_score(model, dataset, num_batchs_max):
+def lipschitz_score(model, dataset, num_batchs_max, softmax):
     dataset = raw_batchs(dataset)
     scores = []
     progress = tqdm.tqdm(range(num_batchs_max), leave=False, ascii=True) if tqdm_pb else range(num_batchs_max)
     for (x, labels), _ in zip(dataset, progress):
-        score = evaluate_lip(model, x, labels)
+        score = evaluate_lip(model, x, labels, softmax)
         scores.append(score)
     return float(tf.math.reduce_mean(scores))
 
-def lipschitz_interpolation(model, dataset, num_batchs_max, alpha=2.):
+def lipschitz_interpolation(model, dataset, num_batchs_max, softmax, alpha=2.):
     scores = []
     progress = tqdm.tqdm(range(num_batchs_max), leave=False, ascii=True) if tqdm_pb else range(num_batchs_max)
     for (x, indexes, labels, _), _ in zip(mixup_pairs(dataset), progress):
@@ -103,14 +106,14 @@ def lipschitz_interpolation(model, dataset, num_batchs_max, alpha=2.):
         lbda = tf.constant(np.random.beta(alpha, alpha, size=shape), dtype=tf.float32)
         z = tf.gather(x, indexes)
         mixed = lbda*x + (1.-lbda)*z
-        score = evaluate_lip(model, mixed, labels)
+        score = evaluate_lip(model, mixed, labels, softmax)
         scores.append(score)
     return float(tf.math.reduce_mean(scores))
 
 def complexity(model, dataset):
     # model.summary()
-    num_batchs_max = 8   # 384
-    avg_loss = lipschitz_interpolation(model, dataset, num_batchs_max, alpha=2.)
-    # avg_loss = lipschitz_score(model, dataset, num_batchs_max)
+    num_batchs_max = 256
+    avg_loss = lipschitz_interpolation(model, dataset, num_batchs_max, softmax=True, alpha=2.)
+    # avg_loss = lipschitz_score(model, dataset, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
     return avg_loss

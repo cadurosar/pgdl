@@ -49,6 +49,7 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |                Margin gap                 |  3.04  |   2.59  |     2.13     |      3.96     |      3.96      |      1.22      |
 |         Input Mixup (256x256 samples)     |        |   3.63  |              |               |      0.41      |      6.85      |
 |      Lipschitz Norm (128x256 samples)     |        |   4.24  |              |               |      1.25      |      7.21      |
+|               One Lipschitz               |        |   4.27  |              |               |      1.23      |      7.31      |
 |         Input Mixup Lipschitz Norm        |        |   4.35  |              |               |      1.18      |      7.52      |
 |  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |  15.6  |   5.99  |     6.31     |      24.35    |      7.88      |      4.10      |
 
@@ -67,5 +68,6 @@ Table generated with https://www.tablesgenerator.com/markdown_tables:
 |                Margin gap                 |      38      |       26      |       81       |       51       |
 |         Input Mixup (256x256 samples)     |              |               |       118      |       75       |
 |      Lipschitz Norm (128x256 samples)     |              |               |       193      |       120      |
+|               One Lipschitz               |              |               |       346      |       217      |
 |         Input Mixup Lipschitz Norm        |              |               |       90       |       56       |
 |  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |   472        |   110         |      143       |       103      |

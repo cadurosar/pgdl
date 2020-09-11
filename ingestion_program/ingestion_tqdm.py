@@ -205,7 +205,7 @@ if __name__=="__main__" and debug_mode<4:
         training_data = D.load_training_data()
         complexity_value = {}
         import tqdm
-        for mid in tqdm.tqdm(D.model_ids):
+        for mid in tqdm.tqdm(D.model_ids, ascii=True):
             if time_exceeded:
                 complexity_value[mid] = 'EXCEEDED'
                 continue
