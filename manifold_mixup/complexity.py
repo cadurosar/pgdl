@@ -181,8 +181,8 @@ def adj_matrix(batch):
     batch_left = tf.reshape(batch, dummy_dim + batch_dim + data_dim)
     batch_right = tf.reshape(batch, batch_dim + dummy_dim + data_dim)
     delta = batch_left - batch_right
-    norms = tf.math.reduce_sum(delta ** 2, axis=2)
-    return norms
+    squared_norms = tf.math.reduce_sum(delta ** 2, axis=list(range(2,len(delta.shape))))
+    return squared_norms
 
 #@tf.function
 def normalized(adj):
