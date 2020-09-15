@@ -51,8 +51,10 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |      Lipschitz Norm (128x256 samples)     |        |   4.24  |              |               |      1.25      |      7.21      |
 |               One Lipschitz               |        |   4.27  |              |               |      1.23      |      7.31      |
 |         Input Mixup Lipschitz Norm        |        |   4.35  |              |               |      1.18      |      7.52      |
+|            SoftMax Lipschitz Norm         |        |   5.55  |              |               |      1.78      |      9.32      |
 |  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |  15.6  |   5.99  |     6.31     |      24.35    |      7.88      |      4.10      |
 |  MIXUP Smoothness Last (Binary 100 500-graphs-k=1) |  16.04  |   7.29  |     3.12     |      28.97    |      9.34      |      5.37      |
+|      Catastrophic Forgetting Measure      |        |   0.68  |              |               |      0.61      |      0.74      |
 
 # Time spent on the public set/private set
 
@@ -69,4 +71,6 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |      Lipschitz Norm (128x256 samples)     |              |               |       193      |       120      |
 |               One Lipschitz               |              |               |       346      |       217      |
 |         Input Mixup Lipschitz Norm        |              |               |       90       |       56       |
+|            SoftMax Lipschitz Norm         |              |               |       188      |       117      |
 |  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |   472        |   110         |      143       |       103      |
+|       Catastrophic Forgetting Measure     |              |               |       223      |       142      |
