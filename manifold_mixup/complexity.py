@@ -117,7 +117,7 @@ def local_gaussian_robustness(x, batch, label, y, epsilon):
 def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
     dataset = raw_batchs(dataset, batch_size=1)
     progress = progress_bar(num_batchs_max)
-    epsilon = tf.constant([1e-3, 5e-3, 1e-2, 5e-2, 1e-1])
+    epsilon = tf.constant([1e-3, 5e-3, 1e-2, 5e-2, 1e-1, 2e-1])
     robustnesses = []
     for (x, label), _ in zip(dataset, progress):
         batch = generate_gaussian_batch(noisy_per_epsilon, epsilon, x)
