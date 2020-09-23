@@ -9,13 +9,8 @@ python3 scoring_program/score.py ../datasets/public_data sample_result_submissio
 import os
 import numpy as np
 import tensorflow as tf
-try:
-    import tqdm
-    def progress_bar(num_batchs):
-        return tqdm.tqdm(range(num_batchs), leave=False, ascii=True)
-except:
-    def progress_bar(num_batchs):
-        return range(num_batchs)
+from utils import *
+
 
 def balanced_batchs(dataset, num_labels, batch_size=256):
     classes = []
@@ -34,49 +29,13 @@ def mixup_pairs(dataset):
         indexes = tf.random.shuffle(range(x.shape[0]))
         yield x, indexes, y, tf.gather(y, indexes)
 
-@tf.function
-def mix_manifold(model, x, indexes, lbda):
-    def forward(layer, *inputs):
-        if len(inputs) == 1:
-            return layer(inputs[0])
-        return layer(inputs[0]), layer(inputs[1])
-    inputs = x, z
-    for layer in model.layers:
-        inputs = forward(layer, *inputs)
-        if False:
-            inputs = lbda*inputs[0] + (1.-lbda)*inputs[1]
-    return inputs
-
-@tf.function
-def mix_input(model, x, indexes, lbda):
-    z = tf.gather(x, indexes)
-    mixed = lbda*x + (1.-lbda)*z
-    mixed = model(mixed)
-    return mixed
-
-@tf.function
-def criterion(logits, y):
-    return tf.nn.sparse_softmax_cross_entropy_with_logits(y, logits)
-
-def mixup_score(model, dataset, num_batchs_max, mix_policy, alpha=2.):
-    losses = []
-    mix_fn = mix_input if mix_policy == 'input' else mix_manifold
-    progress = progress_bar(num_batchs_max)
-    for (x, indexes, y, yt), _ in zip(mixup_pairs(dataset), progress):
-        shape = (y.shape[0],) + (1,)*(len(x.shape)-1)
-        lbda = tf.constant(np.random.beta(alpha, alpha, size=shape), dtype=tf.float32)
-        mixed = mix_fn(model, x, indexes, lbda)
-        loss = lbda*criterion(mixed, y) + (1.0-lbda)*criterion(mixed, yt)
-        loss = tf.math.reduce_mean(loss)
-        losses.append(loss)
-    return float(tf.math.reduce_mean(losses))
 
 #######################################################################
 ############################### Lipschitz #############################
 #######################################################################
 
 @tf.function
-def penalty(batch_squared_norm, one_lipschitz=False):
+def penalty(batch_squared_norm, one_lipschitz):
     batch_norm = tf.math.sqrt(batch_squared_norm)
     if one_lipschitz:
         return (batch_norm - 1.0) ** 2
@@ -96,130 +55,6 @@ def evaluate_lip(model, x, labels, softmax):
     lips = tf.math.reduce_mean(grad_penalty)
     return lips
 
-def lipschitz_score(model, dataset, num_batchs_max, softmax):
-    dataset = raw_batchs(dataset)
-    scores = []
-    progress = progress_bar(num_batchs_max)
-    for (x, labels), _ in zip(dataset, progress):
-        score = evaluate_lip(model, x, labels, softmax)
-        scores.append(score)
-    return float(tf.math.reduce_mean(scores))
-
-def lipschitz_interpolation(model, dataset, num_batchs_max, softmax, alpha=2.):
-    scores = []
-    progress = progress_bar(num_batchs_max)
-    for (x, indexes, labels, _), _ in zip(mixup_pairs(dataset), progress):
-        shape = (labels.shape[0],) + (1,)*(len(x.shape)-1)
-        lbda = tf.constant(np.random.beta(alpha, alpha, size=shape), dtype=tf.float32)
-        z = tf.gather(x, indexes)
-        mixed = lbda*x + (1.0-lbda)*z
-        score = evaluate_lip(model, mixed, labels, softmax)
-        scores.append(score)
-    return float(tf.math.reduce_mean(scores))
-
-
-#######################################################################
-#################### Catastrophic forgetting ##########################
-#######################################################################
-
-def witness_set(model, dataset, num_batchs_witness):
-    xs, ys = [], []
-    progress = progress_bar(num_batchs_witness)
-    for (x, _, _, _), _ in zip(dataset, progress):
-        y = model(x)
-        xs.append(x)
-        ys.append(y)
-    return xs, ys
-
-def dumb_training(model, dataset, num_dumb_batchs):
-    progress = progress_bar(num_dumb_batchs)
-    opt = tf.keras.optimizers.Adam()
-    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    for (x, _, _, yt), _ in zip(dataset, progress):
-        with tf.GradientTape() as tape:
-            y = model(x)
-            loss = loss_fn(yt, y)
-        gradients = tape.gradient(loss, model.trainable_variables)
-        opt.apply_gradients(zip(gradients, model.trainable_variables))
-
-def witness_error(model, witness):
-    l2_dists = []
-    progress = progress_bar(len(witness[0]))
-    for x, y, _ in zip(*witness, progress):
-        logits = model(x)
-        dist = tf.norm(y - logits, axis=1)  # logits axis, not batch
-        l2_dists.append(dist)
-    return float(tf.math.reduce_mean(l2_dists))
-
-def catastrophic(model, dataset, num_batchs_witness, num_dumb_batchs):
-    dataset = mixup_pairs(dataset)
-    witness = witness_set(model, dataset, num_batchs_witness)
-    dumb_training(model, dataset, num_dumb_batchs)
-    loss = witness_error(model, witness)
-    return loss
-
-#######################################################################
-################ Graph Distances Based Measure ########################
-#######################################################################
-
-#@tf.function
-def partial_forward(model, x, layer_cut):
-    for layer in model.layers[:layer_cut]:
-        x = layer(x)
-    return x
-
-def resume_model(model, layer_cut):
-    def f(x):
-        for layer in model.layers[layer_cut:]:
-            x = layer(x)
-        return x
-    return f
-
-#@tf.function
-def adj_matrix(batch):
-    batch_dim, data_dim, dummy_dim = (batch.shape[0],), batch.shape[1:], (1,)
-    batch_left = tf.reshape(batch, dummy_dim + batch_dim + data_dim)
-    batch_right = tf.reshape(batch, batch_dim + dummy_dim + data_dim)
-    delta = batch_left - batch_right
-    squared_norms = tf.math.reduce_sum(delta ** 2, axis=list(range(2,len(delta.shape))))
-    return squared_norms
-
-#@tf.function
-def normalized(adj):
-    diag = tf.linalg.diag_part(adj)
-    diag = tf.linalg.diag(tf.math.rsqrt(diag))
-    return diag @ adj @ diag
-
-#@tf.function
-def similarity(adj):
-    return tf.math.exp(-adj)
-
-#@tf.function
-def thresholding(adj, num_edges_max):
-    top_k, _ = tf.math.top_k(tf.reshape(-adj, [-1]), num_edges_max)
-    threshold = -top_k[-1]
-    mask = (adj <= threshold)
-    return mask
-
-#@tf.function
-def get_graph(x, num_edges_max):
-    adj = adj_matrix(x)
-    adj = thresholding(adj, num_edges_max)
-    return adj
-
-#@tf.function
-def edge_interpolation(mask, x, labels, num_points=3):
-    data_dim = tuple(x.shape[1:])
-    pairs = tf.where(mask)  # retrieve
-    left, right = pairs[:,0], pairs[:,1]
-    x_left, x_right = tf.gather(x, left), tf.gather(x, right)
-    x_left, x_right = tf.expand_dims(x_left, axis=0), tf.expand_dims(x_right, axis=0)
-    lbdas = tf.range(0., 1., 1/(num_points-1), dtype=tf.float32)
-    lbdas = tf.reshape(lbdas, (-1,1)+(1,)*len(data_dim))
-    z = lbdas * x_left + (1. - lbdas) * x_right  # broadcast
-    z = tf.reshape(z, shape=(-1,)+data_dim)  # flatten to batch dim 1
-    return z, tf.gather(labels, left), tf.gather(labels, right)
-
 @tf.function
 def jacob_lip(model, x):
     with tf.GradientTape(watch_accessed_variables=False) as tape:
@@ -231,25 +66,67 @@ def jacob_lip(model, x):
     lips = tf.math.reduce_mean(grad_penalty)
     return lips
 
-def graph_lip(model, dataset, num_batchs_max, almost_k_regular, layer_cut, input_mixup):
-    output_shape = model(next(dataset.take(1).batch(1).__iter__())[0]).shape
-    num_labels = int(output_shape[-1])
-    dataset = balanced_batchs(dataset, num_labels)
-    lips = []
-    resumed = resume_model(model, layer_cut=layer_cut) if not input_mixup else model
+def lipschitz_score(model, dataset, num_batchs_max, softmax):
+    dataset = raw_batchs(dataset)
+    scores = []
     progress = progress_bar(num_batchs_max)
     for (x, labels), _ in zip(dataset, progress):
-        latent = partial_forward(model, x, layer_cut=layer_cut)
-        num_edges_max = latent.shape[0] * almost_k_regular
-        mask = get_graph(latent, num_edges_max)
-        if input_mixup:
-            interpolated, _, _ = edge_interpolation(mask, x, labels, num_points=5)
-        else:
-            interpolated, _, _ = edge_interpolation(mask, latent, labels, num_points=5)
-        lip = jacob_lip(resumed, interpolated)
-        lips.append(lip)
-    return float(tf.math.reduce_mean(lip))
+        score = evaluate_lip(model, x, labels, softmax)
+        scores.append(score)
+    return float(tf.math.reduce_mean(scores))
 
+@tf.function
+def generate_gaussian_batch(noisy_per_epsilon, epsilon, x):
+    no_batch_shape = tuple(x.shape[1:])
+    noise_shape = (epsilon.shape[0],noisy_per_epsilon) + no_batch_shape
+    mean = tf.reshape(x, shape=(1,1)+no_batch_shape)
+    std = tf.reshape(epsilon, shape=(-1,1)+(1,)*len(no_batch_shape))
+    batch = tf.random.normal(noise_shape, mean, std, dtype=tf.float32)
+    output_shape = (-1,) + no_batch_shape
+    return tf.reshape(batch, shape=output_shape)
+
+@tf.function
+def local_gaussian_is_robustness(x, batch, label, y, epsilon):
+    no_batch_dims = list(range(-len(x.shape)+1,0))
+    z = tf.math.reduce_sum((batch - x)**2, axis=no_batch_dims)
+    z = tf.reshape(z, shape=(epsilon.shape[0],-1)) # shape E x K
+    z = z / tf.reshape(epsilon, shape=(-1,1)) # warning, shape E x K
+    z_source = tf.expand_dims(z, axis=1)  # sampled from
+    z_target = tf.expand_dims(z, axis=0)  # used for
+    is_weight = z_source - z_target  # shape E x E x K
+    is_weight = tf.math.exp(0.5 * is_weight)  # shape E x E x K
+    eps_source = tf.reshape(epsilon, axis=(1,-1))
+    eps_target = tf.reshape(epsilon, axis=(-1,1))
+    prefactor = tf.math.sqrt(eps_source / eps_target)  # warning
+    is_weight = is_weight * prefactor
+    error = tf.math.not_equal(label, tf.math.argmax(y, axis=-1))
+    error = tf.dtypes.cast(error, dtype=tf.float32)  # shape E x K
+    error = tf.expand_dims(error, axis=1)  # shape 1 x E x K because evaluated in source
+    expectation = error * is_weight  # shape E x E x K
+    expectation = tf.math.reduce_mean(expectation, axis=[-1,-2])
+    return expectation  # for each epsilon, a result
+
+#@tf.function
+def local_gaussian_robustness(x, batch, label, y, epsilon):
+    error = tf.math.not_equal(tf.math.argmax(y, axis=-1, output_type=tf.int32), label)
+    error = tf.dtypes.cast(error, dtype=tf.float32)  # shape (EK)
+    error = tf.reshape(error, shape=(epsilon.shape[0],-1))  # shape (E, K)
+    expectation = tf.math.reduce_mean(error, axis=-1)
+    return expectation  # for each epsilon, a result
+
+def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
+    dataset = raw_batchs(dataset, batch_size=1)
+    progress = progress_bar(num_batchs_max)
+    epsilon = tf.constant([1e-3, 5e-3, 1e-2, 5e-2, 1e-1])
+    robustnesses = []
+    for (x, label), _ in zip(dataset, progress):
+        batch = generate_gaussian_batch(noisy_per_epsilon, epsilon, x)
+        y = model(batch)
+        robustness = local_gaussian_robustness(x, batch, label, y, epsilon)
+        robustnesses.append(robustness)
+    mean_per_eps = tf.reduce_mean(robustnesses, axis=0)  # reduce on columns
+    print(mean_per_eps)
+    return tf.reduce_mean(mean_per_eps)
 
 #######################################################################
 ############################# Complexity ##############################
@@ -259,9 +136,9 @@ def complexity(model, dataset):
     # model.summary()
     public_data = False
     num_batchs_max = 8 if public_data else 24
-    # avg_loss = lipschitz_interpolation(model, dataset, num_batchs_max, softmax=True, alpha=2.)
     # avg_loss = lipschitz_score(model, dataset, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
     # avg_loss = catastrophic(model, dataset, num_batchs_witness=num_batchs_max, num_dumb_batchs=4)
-    avg_loss = graph_lip(model, dataset, num_batchs_max, almost_k_regular=8, layer_cut=-1, input_mixup=False)
+    # avg_loss = graph_lip(model, dataset, num_batchs_max, almost_k_regular=8, layer_cut=-1, input_mixup=False)
+    avg_loss = mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon=64)
     return avg_loss
