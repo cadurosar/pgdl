@@ -106,16 +106,18 @@ def local_gaussian_is_robustness(x, batch, label, y, epsilon):
     expectation = tf.math.reduce_mean(expectation, axis=[-1,-2])
     return expectation  # for each epsilon, a result
 
-#@tf.function
+@tf.function
 def local_gaussian_robustness(x, batch, label, y, epsilon):
-    error = tf.math.not_equal(tf.math.argmax(y, axis=-1, output_type=tf.int32), label)
+    # error = tf.math.not_equal(tf.math.argmax(y, axis=-1, output_type=tf.int32), label)
+    label = tf.broadcast_to(label, y.shape)
+    error = tf.nn.softmax_cross_entropy_with_logits(label, y)
     error = tf.dtypes.cast(error, dtype=tf.float32)  # shape (EK)
     error = tf.reshape(error, shape=(epsilon.shape[0],-1))  # shape (E, K)
     expectation = tf.math.reduce_mean(error, axis=-1)
     return expectation  # for each epsilon, a result
 
 def rank_to_score(mean_per_eps):
-    return float(mean_per_eps[-1])
+    return float(tf.reduce_mean(mean_per_eps))
 
 def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
     dataset = raw_batchs(dataset, batch_size=1)
