@@ -115,7 +115,8 @@ def local_gaussian_robustness(x, batch, label, y, epsilon):
     return expectation  # for each epsilon, a result
 
 def rank_to_score(mean_per_eps):
-    return mean_per_eps
+    mean_per_eps = tf.reduce_mean(mean_per_eps, axis=0)
+    return float(mean_per_eps[-1])
 
 def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
     dataset = raw_batchs(dataset, batch_size=1)
