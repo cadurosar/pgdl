@@ -117,7 +117,7 @@ def local_gaussian_robustness(x, batch, label, y, epsilon):
     return expectation  # for each epsilon, a result
 
 def rank_to_score(mean_per_eps):
-    return float(tf.reduce_mean(mean_per_eps))
+    return float(tf.reduce_mean(mean_per_eps[-3:]))
 
 def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
     dataset = raw_batchs(dataset, batch_size=1)
@@ -140,7 +140,7 @@ def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
 def complexity(model, dataset):
     # model.summary()
     public_data = False
-    num_batchs_max = 8 if public_data else 2048
+    num_batchs_max = 8 if public_data else 4096
     # avg_loss = lipschitz_score(model, dataset, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
     # avg_loss = catastrophic(model, dataset, num_batchs_witness=num_batchs_max, num_dumb_batchs=4)
