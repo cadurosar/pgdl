@@ -9,27 +9,67 @@ python3 scoring_program/score.py ../datasets/public_data sample_result_submissio
 import os
 import numpy as np
 import tensorflow as tf
+from .utils import progress_bar, balanced_batchs
 
 
-@tf.function
-def projected_gradient(model, x, label, num_steps, num_steps, epsilon, inf_dataset=0., sup_dataset=1.):
-    label = tf.broadcast_to(label, shape=[x.shape[0], 1])
-    non_batch_axis = list(range(1,len(x.shape)))
-    for i in range(num_steps):
-        y = f(x)
-        loss = tf.nn.softmax_cross_entropy_with_logits(label, y)
-        g = tf.gradients(loss, x)
-        x = x + g
-        x = tf.clip_by_norm(x, epsilon)  # return to epsilon ball
-        x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
+# @tf.function
+def variance(x):  # norm2 distance squared
+    x_left = tf.expand_dims(x, axis=1)
+    x_right = tf.expand_dims(x, axis=0)
+    delta_square_per_dim = (x_left - x_right) ** 2.
+    square_dists = tf.reduce_sum(delta_square_per_dim, axis=list(range(2, tf.rank(x_left))))
+    avg_dists = tf.reduce_mean(square_dists)
+    return avg_dists
+
+# @tf.function
+def gradient_step(label, y, x_0, x,
+                  step_size, lbda=1.,
+                  epsilon=1e-1, inf_dataset=0., sup_dataset=1.):
+    ce_loss = tf.nn.softmax_cross_entropy_with_logits(label, y)
+    entropy_loss = variance(x)
+    loss = ce_loss + lbda * entropy_loss
+    print(ce_loss, loss, loss)
+    g = tf.gradients(loss, x)
+    x = x + step_size * g  # add gradient (Gradient Ascent)
+    x = x_0 + tf.clip_by_norm(x - x_0, epsilon)  # return to epsilon ball
+    x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
+    return x
+
+# @tf.function
+def generate_population(x, label, step_size, population_size=32):
+    x = tf.broadcast_to(x, shape=[population_size]+list(x.shape[1:]))
+    label = tf.broadcast_to(label, shape=[population_size, 1])
+    x = tf.random.normal(x.shape, x, step_size)
+    return x
+
+# @tf.function
+def criterion(label, y):
+    return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(label, y))
+
+# @tf.function
+def projected_gradient(model, x, label, num_steps=50, step_size=1e-4):
+    x, label = generate_population(x, label, step_size)
+    x_0 = x
+    for _ in range(num_steps):
+        y = model(x)
+        x = gradient_step(label, y, x_0, x, step_size)
+    return criterion(y, label)
 
 
 def adversarial_score(model, dataset, num_batchs_max):
-    pass
+    losses = []
+    print('New ascent !!')
+    for (x, label), _ in zip(dataset, progress_bar(num_batchs_max)):
+        pg_loss = projected_gradient(model, x, label)
+        print('Descent over', pg_loss, '\n')
+    return float(tf.reduce_mean(losses))
 
 def complexity(model, dataset):
-    # model.summary()
-    num_batchs_max = 32  # 4096
+    output_shape = model(next(dataset.take(1).batch(1).__iter__())[0]).shape
+    num_labels = int(output_shape[-1])
+    debug = True
+    num_batchs_max = 12 if debug else 256
+    dataset = balanced_batchs(dataset, num_labels, 1)
     avg_loss = adversarial_score(model, dataset, num_batchs_max)
     return avg_loss
 

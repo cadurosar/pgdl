@@ -12,23 +12,6 @@ import tensorflow as tf
 from utils import *
 
 
-def balanced_batchs(dataset, num_labels, batch_size=256):
-    classes = []
-    for label in range(num_labels):
-        cur_class = dataset.filter(lambda data, y: tf.math.equal(y, label))
-        cur_class = cur_class.repeat().shuffle(batch_size)
-        classes.append(cur_class)
-    return tf.data.experimental.sample_from_datasets(classes).batch(batch_size)
-
-def raw_batchs(dataset, batch_size=256):
-    return dataset.repeat().shuffle(buffer_size=10000).batch(batch_size)
-
-def mixup_pairs(dataset):
-    dataset = raw_batchs(dataset)
-    for x, y in dataset:
-        indexes = tf.random.shuffle(range(x.shape[0]))
-        yield x, indexes, y, tf.gather(y, indexes)
-
 
 #######################################################################
 ############################### Lipschitz #############################
@@ -107,11 +90,11 @@ def local_gaussian_is_robustness(x, batch, label, y, epsilon):
     return expectation  # for each epsilon, a result
 
 @tf.function
-def local_gaussian_robustness(x, batch, label, y, epsilon):
+def local_gaussian_robustness(batch, label, y, epsilon):
     # error = tf.math.not_equal(tf.math.argmax(y, axis=-1, output_type=tf.int32), label)
     label = tf.broadcast_to(label, y.shape)
     error = tf.nn.softmax_cross_entropy_with_logits(label, y)
-    error = tf.dtypes.cast(error, dtype=tf.float32)  # shape (EK)
+    error = tf.dtypes.cast(error, tf.float32)  # shape (EK)
     error = tf.reshape(error, shape=(epsilon.shape[0],-1))  # shape (E, K)
     expectation = tf.math.reduce_mean(error, axis=-1)
     return expectation  # for each epsilon, a result
@@ -127,7 +110,7 @@ def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
     for (x, label), _ in zip(dataset, progress):
         batch = generate_gaussian_batch(noisy_per_epsilon, epsilon, x)
         y = model(batch)
-        robustness = local_gaussian_robustness(x, batch, label, y, epsilon)
+        robustness = local_gaussian_robustness(batch, label, y, epsilon)
         robustnesses.append(robustness)
     mean_per_eps = tf.reduce_mean(robustnesses, axis=0)  # reduce on columns
     score = rank_to_score(mean_per_eps)
@@ -140,10 +123,10 @@ def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
 def complexity(model, dataset):
     # model.summary()
     public_data = False
-    num_batchs_max = 8 if public_data else 4096
+    num_batchs_max = 2048
     # avg_loss = lipschitz_score(model, dataset, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
     # avg_loss = catastrophic(model, dataset, num_batchs_witness=num_batchs_max, num_dumb_batchs=4)
     # avg_loss = graph_lip(model, dataset, num_batchs_max, almost_k_regular=8, layer_cut=-1, input_mixup=False)
-    avg_loss = mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon=32)
+    avg_loss = mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon=16)
     return avg_loss
