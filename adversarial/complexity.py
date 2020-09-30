@@ -121,7 +121,7 @@ def complexity(model, dataset):
     num_steps       = tf.constant(60, dtype=tf.int32)
     step_size       = tf.constant(1., dtype=tf.float32)
     population_size = 16
-    lbda            = tf.constant(0., dtype=tf.float32)
+    lbda            = tf.constant(1., dtype=tf.float32)
     length_unit     = sqrt(float(tf.size(dummy_input)))
     epsilon         = tf.constant(0.1 * length_unit, dtype=tf.float32)
     inf_dataset     = tf.constant(-2., dtype=tf.float32)
