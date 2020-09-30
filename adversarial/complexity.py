@@ -35,10 +35,11 @@ def projection(x, x_0, epsilon=0.3, inf_dataset=0., sup_dataset=1.):
 @tf.function
 def gradient_step(model, label, x_0, x,
                   step_size, lbda=1.):
+    tf.print(tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
     y = model(x)
     criterion = ce_loss(label, y)
     variance = variance_loss(x)
-    loss = criterion + lbda * variance
+    loss = criterion #  + lbda * variance
     tf.print(criterion, variance, loss)
     g = tf.gradients(loss, [x])[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
@@ -55,7 +56,7 @@ def generate_population(x, label, step_size, population_size=20):
     return x, x_0, label
 
 # @tf.function
-def projected_gradient(model, x, label, num_steps=10, step_size=0.1):
+def projected_gradient(model, x, label, num_steps=10, step_size=1e-3):
     x, x_0, label = generate_population(x, label, step_size)
     for _ in range(num_steps):
         x = gradient_step(model, label, x_0, x, step_size)
