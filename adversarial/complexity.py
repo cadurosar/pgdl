@@ -38,7 +38,7 @@ def gradient_step(model, label, x_0, x,
     y = model(x)
     criterion = ce_loss(label, y)
     variance = variance_loss(x)
-    loss = criterion #  + lbda * variance
+    loss = criterion + lbda * variance
     tf.print(criterion, variance, loss)
     g = tf.gradients(loss, [x])[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
