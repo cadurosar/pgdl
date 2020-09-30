@@ -57,7 +57,7 @@ def projected_gradient(model, x, label, num_steps=10, step_size=0.1):
     x_0 = x
     for _ in range(num_steps):
         x = gradient_step(model, label, x_0, x, step_size)
-    return criterion(label, y)
+    return criterion(label, model(x))
 
 
 def adversarial_score(model, dataset, num_batchs_max):
