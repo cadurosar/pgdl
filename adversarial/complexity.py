@@ -78,7 +78,8 @@ def gradient_step(model, label, x_0, x,
 def generate_population(x, label, epsilon, population_size):
     x_0 = tf.broadcast_to(x, shape=[population_size]+list(x.shape[1:]))
     label = tf.broadcast_to(label, shape=[population_size])
-    x = tf.random.normal(x_0.shape, x_0, epsilon * 0.1)  # within the ball
+    x = tf.random.normal(x_0.shape, x_0, epsilon * 0.5)  # within the ball
+    tf.print(x)
     return x, x_0, label
 
 # @tf.function
