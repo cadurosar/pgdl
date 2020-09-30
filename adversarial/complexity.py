@@ -23,9 +23,10 @@ def variance(x):  # norm2 distance squared
     return avg_dists
 
 @tf.function
-def gradient_step(label, y, x_0, x,
+def gradient_step(model, label, x_0, x,
                   step_size, lbda=1.,
                   epsilon=0.3, inf_dataset=0., sup_dataset=1.):
+    y = model(x)
     ce_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(label, y))
     variance_loss = variance(x)
     loss = ce_loss  # + lbda * variance_loss
@@ -53,8 +54,7 @@ def projected_gradient(model, x, label, num_steps=10, step_size=0.1):
     x, label = generate_population(x, label, step_size)
     x_0 = x
     for _ in range(num_steps):
-        y = model(x)
-        x = gradient_step(label, y, x_0, x, step_size)
+        x = gradient_step(label, x_0, x, step_size)
     return criterion(label, y)
 
 
