@@ -25,7 +25,7 @@ def variance(x):  # norm2 distance squared
 @tf.function
 def gradient_step(label, y, x_0, x,
                   step_size, lbda=1.,
-                  epsilon=1e-1, inf_dataset=0., sup_dataset=1.):
+                  epsilon=1e-3, inf_dataset=0., sup_dataset=1.):
     ce_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(label, y))
     entropy_loss = variance(x)
     loss = ce_loss + lbda * entropy_loss
