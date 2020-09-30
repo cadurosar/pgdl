@@ -55,14 +55,14 @@ def generate_population(x, label, epsilon, population_size):
     x = tf.random.normal(x_0.shape, x_0, epsilon)
     return x, x_0, label
 
-@tf.function
+# @tf.function
 def projected_gradient(model, x, label,
                        num_steps, step_size, population_size,
                        lbda, epsilon, inf_dataset, sup_dataset):
     x, x_0, label = generate_population(x, label,
                                         epsilon, population_size)
     x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
-    for _ in tf.range(num_steps):
+    for _ in range(num_steps):
         x = gradient_step(model, label, x_0, x,
                           step_size, epsilon, lbda,
                           inf_dataset, sup_dataset)
@@ -111,9 +111,9 @@ def complexity(model, dataset):
     num_steps       = tf.constant(30, dtype=tf.int32)
     step_size       = tf.constant(1., dtype=tf.float32)
     population_size = 16
-    lbda            = tf.constant(2., dtype=tf.float32)
+    lbda            = tf.constant(5., dtype=tf.float32)
     length_unit     = sqrt(float(tf.size(dummy_input)))
-    epsilon         = tf.constant(0.01 * length_unit, dtype=tf.float32)
+    epsilon         = tf.constant(0.05 * length_unit, dtype=tf.float32)
     inf_dataset     = tf.constant(-2., dtype=tf.float32)
     sup_dataset     = tf.constant(2., dtype=tf.float32)
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
