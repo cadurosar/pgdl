@@ -50,7 +50,7 @@ def gradient_step(model, label, x_0, x,
 def generate_population(x, label, step_size, population_size=20):
     x_0 = tf.broadcast_to(x, shape=[population_size]+list(x.shape[1:]))
     label = tf.broadcast_to(label, shape=[population_size])
-    x = tf.random.normal(x.shape, x_0, step_size)
+    x = tf.random.normal(x_0.shape, x_0, step_size)
     x = projection(x, x_0)
     return x, x_0, label
 
