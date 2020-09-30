@@ -34,9 +34,7 @@ def projection(x, x_0, epsilon=0.3, inf_dataset=0., sup_dataset=1.):
 
 @tf.function
 def gradient_step(model, label, x_0, x,
-                  step_size, lbda=1.,
-                  ):
-    tf.print(x.shape)
+                  step_size, lbda=1.):
     y = model(x)
     criterion = ce_loss(label, y)
     variance = variance_loss(x)
@@ -61,7 +59,7 @@ def projected_gradient(model, x, label, num_steps=10, step_size=0.1):
     x, x_0, label = generate_population(x, label, step_size)
     for _ in range(num_steps):
         x = gradient_step(model, label, x_0, x, step_size)
-    return criterion(label, model(x))
+    return ce_loss(label, model(x))
 
 
 def adversarial_score(model, dataset, num_batchs_max):
