@@ -35,7 +35,6 @@ def projection(x, x_0, epsilon=0.3, inf_dataset=0., sup_dataset=1.):
 @tf.function
 def gradient_step(model, label, x_0, x,
                   step_size, lbda=1.):
-    tf.print(tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
     y = model(x)
     criterion = ce_loss(label, y)
     variance = variance_loss(x)
@@ -67,6 +66,7 @@ def adversarial_score(model, dataset, num_batchs_max):
     losses = []
     print('New ascent !!')
     for (x, label), _ in zip(dataset, progress_bar(num_batchs_max)):
+        tf.print(tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
         pg_loss = projected_gradient(model, x, label)
         print('Descent over', pg_loss, '\n')
     return float(tf.reduce_mean(losses))
