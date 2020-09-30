@@ -28,7 +28,7 @@ def gradient_step(label, y, x_0, x,
                   epsilon=0.3, inf_dataset=0., sup_dataset=1.):
     ce_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(label, y))
     variance_loss = variance(x)
-    loss = ce_loss + lbda * variance_loss
+    loss = ce_loss  # + lbda * variance_loss
     tf.print(ce_loss, variance_loss, loss)
     g = tf.gradients(loss, x)[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
