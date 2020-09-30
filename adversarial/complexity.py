@@ -13,7 +13,7 @@ from utils import progress_bar, balanced_batchs
 
 
 @tf.function
-def variance(x):  # norm2 distance squared
+def variance_loss(x):  # norm2 distance squared
     x_left = tf.expand_dims(x, axis=1)
     x_right = tf.expand_dims(x, axis=0)
     delta_square_per_dim = (x_left - x_right) ** 2.
@@ -23,38 +23,42 @@ def variance(x):  # norm2 distance squared
     return avg_dists
 
 @tf.function
-def criterion(label, y):
+def ce_loss(label, y):
     return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
+
+@tf.function
+def projection(x, x_0, epsilon=0.3, inf_dataset=0., sup_dataset=1.):
+    x = x_0 + tf.clip_by_norm(x - x_0, epsilon)  # return to epsilon ball
+    x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
+    return x
 
 @tf.function
 def gradient_step(model, label, x_0, x,
                   step_size, lbda=1.,
-                  epsilon=0.3, inf_dataset=0., sup_dataset=1.):
+                  ):
     tf.print(x.shape)
     y = model(x)
-    ce_loss = criterion(label, y)
-    variance_loss = variance(x)
-    loss = ce_loss  # + lbda * variance_loss
-    tf.print(ce_loss, variance_loss, loss)
-    tf.print(loss)
+    criterion = ce_loss(label, y)
+    variance = variance_loss(x)
+    loss = criterion + lbda * variance
+    tf.print(criterion, variance, loss)
     g = tf.gradients(loss, [x])[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
-    x = x_0 + tf.clip_by_norm(x - x_0, epsilon)  # return to epsilon ball
-    x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
+    x = projection(x, x_0)
     # tf.print(x, x - x_0, x_0, sep='\n')
     return x
 
-# @tf.function
+@tf.function
 def generate_population(x, label, step_size, population_size=20):
-    x = tf.broadcast_to(x, shape=[population_size]+list(x.shape[1:]))
+    x_0 = tf.broadcast_to(x, shape=[population_size]+list(x.shape[1:]))
     label = tf.broadcast_to(label, shape=[population_size])
-    x = tf.random.normal(x.shape, x, step_size)
-    return x, label
+    x = tf.random.normal(x.shape, x_0, step_size)
+    x = projection(x, x_0)
+    return x, x_0, label
 
 # @tf.function
 def projected_gradient(model, x, label, num_steps=10, step_size=0.1):
-    x, label = generate_population(x, label, step_size)
-    x_0 = x
+    x, x_0, label = generate_population(x, label, step_size)
     for _ in range(num_steps):
         x = gradient_step(model, label, x_0, x, step_size)
     return criterion(label, model(x))
