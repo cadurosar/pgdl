@@ -26,7 +26,7 @@ def variance_loss(x):  # norm2 distance squared
 @tf.function
 def cosine_loss(x):  # norm2 distance squared
     non_batch_dims_norm = list(range(1, len(x.shape)))
-    x_norm = tf.sqrt(tf.reduce_sum(x ** 2, axis=non_batch_dims))
+    x_norm = tf.sqrt(tf.reduce_sum(x ** 2, axis=non_batch_dims_norm))
     x_norm_left = tf.expand_dims(x_norm, axis=1)
     x_norm_right = tf.expand_dims(x_norm, axis=0)
     x_left = tf.expand_dims(x, axis=1)
