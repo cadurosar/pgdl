@@ -33,7 +33,7 @@ def gradient_step(label, y, x_0, x,
     g = tf.gradients(loss, x)[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
     x = x_0 + tf.clip_by_norm(x - x_0, epsilon)  # return to epsilon ball
-    # x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
+    x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
     # tf.print(x, x - x_0, x_0, sep='\n')
     return x
 
