@@ -12,7 +12,7 @@ import tensorflow as tf
 from utils import progress_bar, balanced_batchs
 
 
-# @tf.function
+@tf.function
 def variance(x):  # norm2 distance squared
     x_left = tf.expand_dims(x, axis=1)
     x_right = tf.expand_dims(x, axis=0)
@@ -22,7 +22,7 @@ def variance(x):  # norm2 distance squared
     avg_dists = tf.reduce_mean(square_dists)
     return avg_dists
 
-# @tf.function
+@tf.function
 def criterion(label, y):
     return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(label, y))
 
@@ -54,7 +54,7 @@ def projected_gradient(model, x, label, num_steps=10, step_size=0.1):
     x, label = generate_population(x, label, step_size)
     x_0 = x
     for _ in range(num_steps):
-        x = gradient_step(label, x_0, x, step_size)
+        x = gradient_step(model, label, x_0, x, step_size)
     return criterion(label, y)
 
 
