@@ -27,9 +27,9 @@ def gradient_step(label, y, x_0, x,
                   step_size, lbda=1.,
                   epsilon=0.3, inf_dataset=0., sup_dataset=1.):
     ce_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(label, y))
-    entropy_loss = variance(x)
-    loss = ce_loss + lbda * entropy_loss
-    tf.print(ce_loss, entropy_loss, loss)
+    variance_loss = variance(x)
+    loss = ce_loss + lbda * variance_loss
+    tf.print(ce_loss, variance_loss, loss)
     g = tf.gradients(loss, x)[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
     x = x_0 + tf.clip_by_norm(x - x_0, epsilon)  # return to epsilon ball
@@ -49,7 +49,7 @@ def criterion(label, y):
     return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(label, y))
 
 # @tf.function
-def projected_gradient(model, x, label, num_steps=50, step_size=0.1):
+def projected_gradient(model, x, label, num_steps=10, step_size=0.1):
     x, label = generate_population(x, label, step_size)
     x_0 = x
     for _ in range(num_steps):
