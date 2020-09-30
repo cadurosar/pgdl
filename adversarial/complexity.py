@@ -113,7 +113,7 @@ def complexity(model, dataset):
     population_size = 16
     lbda            = tf.constant(5., dtype=tf.float32)
     length_unit     = sqrt(float(tf.size(dummy_input)))
-    epsilon         = tf.constant(0.05 * length_unit, dtype=tf.float32)
+    epsilon         = tf.constant(0.1 * length_unit, dtype=tf.float32)
     inf_dataset     = tf.constant(-2., dtype=tf.float32)
     sup_dataset     = tf.constant(2., dtype=tf.float32)
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
