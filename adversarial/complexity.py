@@ -29,7 +29,7 @@ def ce_loss(label, y):
 @tf.function
 def projection(x, x_0, epsilon=0.3, inf_dataset=0., sup_dataset=1.):
     x = x_0 + tf.clip_by_norm(x - x_0, epsilon)  # return to epsilon ball
-    x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
+    # x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
     return x
 
 @tf.function
@@ -72,6 +72,7 @@ def adversarial_score(model, dataset, num_batchs_max):
     return float(tf.reduce_mean(losses))
 
 def complexity(model, dataset):
+    # warning: one image disappears
     output_shape = model(next(dataset.take(1).batch(1).__iter__())[0]).shape
     num_labels = int(output_shape[-1])
     debug = True
