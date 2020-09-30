@@ -74,7 +74,7 @@ def gradient_step(model, label, x_0, x,
     # tf.print(x, x - x_0, x_0, sep='\n')
     return x
 
-@tf.function
+#  @tf.function
 def generate_population(x, label, epsilon, population_size):
     x_0 = tf.broadcast_to(x, shape=[population_size]+list(x.shape[1:]))
     label = tf.broadcast_to(label, shape=[population_size])
