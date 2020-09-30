@@ -27,7 +27,7 @@ def ce_loss(label, y):
     return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
 
 @tf.function
-def projection(x, x_0, epsilon=0.3, inf_dataset=0., sup_dataset=1.):
+def projection(x, x_0, epsilon=1., inf_dataset=0., sup_dataset=1.):
     x = x_0 + tf.clip_by_norm(x - x_0, epsilon)  # return to epsilon ball
     # x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
     return x
@@ -55,7 +55,7 @@ def generate_population(x, label, step_size, population_size=20):
     return x, x_0, label
 
 # @tf.function
-def projected_gradient(model, x, label, num_steps=10, step_size=1e-1):
+def projected_gradient(model, x, label, num_steps=10, step_size=1.):
     x, x_0, label = generate_population(x, label, step_size)
     for _ in range(num_steps):
         x = gradient_step(model, label, x_0, x, step_size)
