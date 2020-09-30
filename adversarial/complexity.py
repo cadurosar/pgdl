@@ -24,6 +24,20 @@ def variance_loss(x):  # norm2 distance squared
     return avg_dists
 
 @tf.function
+def cosine_loss(x):  # norm2 distance squared
+    non_batch_dims = list(range(1, len(x.shape)))
+    x_norm = tf.sqrt(tf.reduce_sum(x ** 2, axis=non_batch_dims))
+    x_norm_left = tf.expand_dims(x_norm, axis=1)
+    x_norm_right = tf.expand_dims(x_norm, axis=0)
+    x_left = tf.expand_dims(x, axis=1)
+    x_right = tf.expand_dims(x, axis=0)
+    dot_per_dim = x_left * x_right
+    unnormalized = tf.reduce_sum(dot_per_dim, axis=non_batch_dims)
+    cosine_sim = unnormalized / (x_norm_left * x_norm_right)
+    cosine_sim = tf.reduce_mean(square_dists)
+    return -cosine_sim  # to be minimized
+
+@tf.function
 def variance_loss(x):  # norm2 distance squared
     x_left = tf.expand_dims(x, axis=1)
     x_right = tf.expand_dims(x, axis=0)
@@ -49,9 +63,10 @@ def gradient_step(model, label, x_0, x,
                   inf_dataset, sup_dataset):
     y = model(x)
     criterion = ce_loss(label, y)
-    variance = variance_loss(x)
+    # variance = variance_loss(x)
+    variance = cosine_loss(x)
     loss = criterion + lbda * variance
-    tf.print(criterion, variance, loss)
+    # tf.print(criterion, variance, loss)
     g = tf.gradients(loss, [x])[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
     x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
@@ -85,7 +100,7 @@ def adversarial_score(model, dataset, num_batchs_max,
     losses = []
     for (x, label), _ in zip(dataset, progress_bar(num_batchs_max)):
         print('New ascent !!')
-        print('Sizes: ', tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
+        # print('Sizes: ', tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
         pg_loss = projected_gradient(model, x, label,
                                      num_steps, step_size, population_size,
                                      lbda, epsilon, inf_dataset, sup_dataset)
@@ -120,7 +135,7 @@ def complexity(model, dataset):
     num_batchs_max  = 256
     num_steps       = tf.constant(60, dtype=tf.int32)
     step_size       = tf.constant(1., dtype=tf.float32)
-    population_size = 16
+    population_size = 8
     lbda            = tf.constant(1., dtype=tf.float32)
     length_unit     = sqrt(float(tf.size(dummy_input)))
     epsilon         = tf.constant(0.1 * length_unit, dtype=tf.float32)
