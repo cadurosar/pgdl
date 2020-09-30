@@ -30,12 +30,14 @@ def criterion(label, y):
 def gradient_step(model, label, x_0, x,
                   step_size, lbda=1.,
                   epsilon=0.3, inf_dataset=0., sup_dataset=1.):
+    tf.print(x.shape)
     y = model(x)
     ce_loss = criterion(label, y)
     variance_loss = variance(x)
     loss = ce_loss  # + lbda * variance_loss
     tf.print(ce_loss, variance_loss, loss)
-    g = tf.gradients(loss, x)[0]
+    tf.print(loss)
+    g = tf.gradients(loss, [x])[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
     x = x_0 + tf.clip_by_norm(x - x_0, epsilon)  # return to epsilon ball
     x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
