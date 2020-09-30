@@ -35,7 +35,7 @@ def cosine_loss(x):  # norm2 distance squared
     non_batch_dims = list(range(2, len(dot_per_dim.shape)))
     unnormalized = tf.reduce_sum(dot_per_dim, axis=non_batch_dims)
     cosine_sim = unnormalized / (x_norm_left * x_norm_right)
-    cosine_sim = tf.reduce_mean(square_dists)
+    cosine_sim = tf.reduce_mean(cosine_sim)
     return -cosine_sim  # to be minimized
 
 @tf.function
