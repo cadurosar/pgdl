@@ -18,20 +18,21 @@ def variance_loss(x):  # norm2 distance squared
     x_left = tf.expand_dims(x, axis=1)
     x_right = tf.expand_dims(x, axis=0)
     delta_square_per_dim = (x_left - x_right) ** 2.
-    non_batch_dims = list(range(2, len(x_left.shape)))
+    non_batch_dims = list(range(2, len(delta_square_per_dim.shape)))
     square_dists = tf.reduce_sum(delta_square_per_dim, axis=non_batch_dims)
     avg_dists = tf.reduce_mean(square_dists)
     return avg_dists
 
 @tf.function
 def cosine_loss(x):  # norm2 distance squared
-    non_batch_dims = list(range(1, len(x.shape)))
+    non_batch_dims_norm = list(range(1, len(x.shape)))
     x_norm = tf.sqrt(tf.reduce_sum(x ** 2, axis=non_batch_dims))
     x_norm_left = tf.expand_dims(x_norm, axis=1)
     x_norm_right = tf.expand_dims(x_norm, axis=0)
     x_left = tf.expand_dims(x, axis=1)
     x_right = tf.expand_dims(x, axis=0)
     dot_per_dim = x_left * x_right
+    non_batch_dims = list(range(2, len(dot_per_dim.shape)))
     unnormalized = tf.reduce_sum(dot_per_dim, axis=non_batch_dims)
     cosine_sim = unnormalized / (x_norm_left * x_norm_right)
     cosine_sim = tf.reduce_mean(square_dists)
