@@ -24,6 +24,16 @@ def variance_loss(x):  # norm2 distance squared
     return avg_dists
 
 @tf.function
+def variance_loss(x):  # norm2 distance squared
+    x_left = tf.expand_dims(x, axis=1)
+    x_right = tf.expand_dims(x, axis=0)
+    delta_square_per_dim = (x_left - x_right) ** 2.
+    non_batch_dims = list(range(2, len(x_left.shape)))
+    square_dists = tf.reduce_sum(delta_square_per_dim, axis=non_batch_dims)
+    avg_dists = tf.reduce_mean(square_dists)
+    return avg_dists
+
+@tf.function
 def ce_loss(label, y):
     return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
 
@@ -52,7 +62,7 @@ def gradient_step(model, label, x_0, x,
 def generate_population(x, label, epsilon, population_size):
     x_0 = tf.broadcast_to(x, shape=[population_size]+list(x.shape[1:]))
     label = tf.broadcast_to(label, shape=[population_size])
-    x = tf.random.normal(x_0.shape, x_0, epsilon)
+    x = tf.random.normal(x_0.shape, x_0, epsilon * 0.1)  # within the ball
     return x, x_0, label
 
 # @tf.function
@@ -108,10 +118,10 @@ def complexity(model, dataset):
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 256
-    num_steps       = tf.constant(30, dtype=tf.int32)
+    num_steps       = tf.constant(60, dtype=tf.int32)
     step_size       = tf.constant(1., dtype=tf.float32)
     population_size = 16
-    lbda            = tf.constant(5., dtype=tf.float32)
+    lbda            = tf.constant(0., dtype=tf.float32)
     length_unit     = sqrt(float(tf.size(dummy_input)))
     epsilon         = tf.constant(0.1 * length_unit, dtype=tf.float32)
     inf_dataset     = tf.constant(-2., dtype=tf.float32)
