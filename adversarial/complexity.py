@@ -43,9 +43,9 @@ def ce_loss(label, y):
     return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
 
 @tf.function
-def projection(x, epsilon, inf_dataset, sup_dataset):
+def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
     x = tf.clip_by_norm(x, epsilon)  # return to epsilon ball
-    # x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
+    x = tf.clip_by_value(x + x_0, inf_dataset, sup_dataset) - x_0 # return to image manifold
     return x
 
 @tf.function
@@ -60,7 +60,7 @@ def gradient_step(model, label, x_0, x,
     tf.print(criterion, variance, loss)
     g = tf.gradients(loss, [x])[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
-    x = projection(x, epsilon, inf_dataset, sup_dataset)
+    x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
     # tf.print(x, x - x_0, x_0, sep='\n')
     return x
 
@@ -127,11 +127,11 @@ def complexity(model, dataset):
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 256
     num_steps       = tf.constant(60, dtype=tf.int32)
-    step_size       = tf.constant(1., dtype=tf.float32)
+    step_size       = tf.constant(1e-3, dtype=tf.float32)
     population_size = 8
     lbda            = tf.constant(1., dtype=tf.float32)
     length_unit     = sqrt(float(tf.size(dummy_input)))
-    epsilon         = tf.constant(0.1 * length_unit, dtype=tf.float32)
+    epsilon         = tf.constant(0.3 * length_unit, dtype=tf.float32)
     inf_dataset     = tf.constant(-2., dtype=tf.float32)
     sup_dataset     = tf.constant(2., dtype=tf.float32)
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
