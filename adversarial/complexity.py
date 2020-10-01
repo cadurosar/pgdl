@@ -43,6 +43,7 @@ def ce_loss(label, y):
     threshold = tf.math.log(float(y.shape[-1]))
     full_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
     thresholded = tf.minimum(full_loss, threshold)
+    return thresholded
 
 @tf.function
 def multi_targeted(label, y):
