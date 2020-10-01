@@ -38,7 +38,7 @@ def cosine_loss(x):  # norm2 distance squared
     cosine_sim = tf.reduce_mean(cosine_sim)
     return -cosine_sim  # to be minimized
 
-@tf.function
+# @tf.function
 def ce_loss(label, y):
     threshold = tf.math.log(float(y.shape[-1]))
     full_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
@@ -58,7 +58,7 @@ def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
     # x = tf.clip_by_value(x + x_0, inf_dataset, sup_dataset) - x_0 # return to image manifold
     return x
 
-@tf.function
+# @tf.function
 def gradient_step(model, label, x_0, x,
                   step_size, epsilon, lbda,
                   inf_dataset, sup_dataset):
