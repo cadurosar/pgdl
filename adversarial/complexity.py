@@ -79,7 +79,7 @@ def projected_gradient(model, x_0, label,
                        lbda, epsilon, inf_dataset, sup_dataset):
     x, x_0, label = generate_population(x_0, label,
                                         epsilon, population_size)
-    x = projection(x, epsilon, inf_dataset, sup_dataset)
+    x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
     for _ in range(num_steps):
         x = gradient_step(model, label, x_0, x,
                           step_size, epsilon, lbda,
