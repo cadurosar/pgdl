@@ -65,18 +65,19 @@ def gradient_step(model, label, x_0, x,
     return x
 
 #  @tf.function
-def generate_population(x, label, epsilon, population_size):
-    x_0 = tf.broadcast_to(x, shape=[population_size]+list(x.shape[1:]))
+def generate_population(x_0, label, epsilon, population_size):
+    coordinate_wise = epsilon / sqrt(float(tf.size(x_0)))  # remove contribution to ball radius
+    x_0 = tf.broadcast_to(x_0, shape=[population_size]+list(x_0.shape[1:]))
     label = tf.broadcast_to(label, shape=[population_size])
-    x = tf.random.normal(x_0.shape, 0., epsilon * 0.5)  # within the ball
+    x = tf.random.normal(x_0.shape, 0., coordinate_wise)  # within the ball
     tf.print(x)
     return x, x_0, label
 
 # @tf.function
-def projected_gradient(model, x, label,
+def projected_gradient(model, x_0, label,
                        num_steps, step_size, population_size,
                        lbda, epsilon, inf_dataset, sup_dataset):
-    x, x_0, label = generate_population(x, label,
+    x, x_0, label = generate_population(x_0, label,
                                         epsilon, population_size)
     x = projection(x, epsilon, inf_dataset, sup_dataset)
     for _ in range(num_steps):
