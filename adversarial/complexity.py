@@ -45,7 +45,7 @@ def ce_loss(label, y):
 @tf.function
 def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
     x = tf.clip_by_norm(x, epsilon)  # return to epsilon ball
-    x = tf.clip_by_value(x + x_0, inf_dataset, sup_dataset) - x_0 # return to image manifold
+    # x = tf.clip_by_value(x + x_0, inf_dataset, sup_dataset) - x_0 # return to image manifold
     return x
 
 @tf.function
