@@ -43,6 +43,14 @@ def ce_loss(label, y):
     return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
 
 @tf.function
+def multi_targeted(label, y):
+    depth = int(y.shape[-1])
+    off_value = 1. / (depth-1.)
+    multilabel = tf.one_hot(label, depth, on_value=0., off_value=off_value)
+    multilabel_loss = tf.nn.softmax_cross_entropy_with_logits(multilabel, y)
+    return -tf.reduce_mean(multilabel_loss)  # minimize equally adversary classes
+
+@tf.function
 def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
     x = tf.clip_by_norm(x, epsilon)  # return to epsilon ball
     # x = tf.clip_by_value(x + x_0, inf_dataset, sup_dataset) - x_0 # return to image manifold
@@ -53,7 +61,8 @@ def gradient_step(model, label, x_0, x,
                   step_size, epsilon, lbda,
                   inf_dataset, sup_dataset):
     y = model(x + x_0)
-    criterion = ce_loss(label, y)
+    # criterion = ce_loss(label, y)
+    criterion = multi_targeted(label, y)
     # variance = variance_loss(x)
     variance = cosine_loss(x)
     loss = criterion + lbda * variance
