@@ -62,18 +62,19 @@ def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
 @tf.function
 def gradient_step(model, label, x_0, x,
                   step_size, epsilon, lbda,
-                  inf_dataset, sup_dataset):
+                  inf_dataset, sup_dataset,
+                  euclidian_var):
     y = model(x + x_0)
     criterion = ce_loss(label, y)
-    variance = lbda * cosine_loss(x)
-    # criterion = multi_targeted(label, y)
-    # variance = lbda * variance_loss(x)
+    if euclidian_var:
+        variance = lbda * variance_loss(x)
+    else:
+        variance = lbda * cosine_loss(x)
     loss = criterion + variance
-    tf.print(criterion, variance, loss)
+    tf.print('Criterion=', criterion, 'Variance=', variance, 'Loss=', loss)
     g = tf.gradients(loss, [x])[0]
-    x = x + step_size * g  # add gradient (Gradient Ascent)
+    x = x + step_size * g  # Gradient Ascent
     x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
-    # tf.print(x, x - x_0, x_0, sep='\n')
     return x
 
 #  @tf.function
@@ -88,14 +89,16 @@ def generate_population(x_0, label, epsilon, population_size):
 # @tf.function
 def projected_gradient(model, x_0, label,
                        num_steps, step_size, population_size,
-                       lbda, epsilon, inf_dataset, sup_dataset):
+                       lbda, epsilon, inf_dataset, sup_dataset,
+                       euclidian_var):
     x, x_0, label = generate_population(x_0, label,
                                         epsilon, population_size)
     x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
     for _ in range(num_steps):
         x = gradient_step(model, label, x_0, x,
                           step_size, epsilon, lbda,
-                          inf_dataset, sup_dataset)
+                          inf_dataset, sup_dataset,
+                          euclidian_var)
     return ce_loss(label, model(x + x_0))
 
 
@@ -108,7 +111,8 @@ def adversarial_score(model, dataset, num_batchs_max,
         # print('Sizes: ', tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
         pg_loss = projected_gradient(model, x, label,
                                      num_steps, step_size, population_size,
-                                     lbda, epsilon, inf_dataset, sup_dataset)
+                                     lbda, epsilon, inf_dataset, sup_dataset,
+                                     euclidian_var)
         print('Ascent finished', pg_loss, '\n')
     return float(tf.reduce_mean(losses))
 
@@ -138,17 +142,22 @@ def complexity(model, dataset):
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 256
-    num_steps       = tf.constant(60, dtype=tf.int32)
-    step_size       = tf.constant(1., dtype=tf.float32)
+    num_steps       = tf.constant(30, dtype=tf.int32)
+    step_size       = tf.constant(2., dtype=tf.float32)
     population_size = 8
-    lbda            = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
     length_unit     = sqrt(float(tf.size(dummy_input)))
-    epsilon         = tf.constant(0.3 * length_unit, dtype=tf.float32)
+    epsilon_mult    = 0.3
+    epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
+    lbda            = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
+    euclidian_var   = True
+    if euclidian_variance:
+        lbda        = lbda / epsilon  # divide by average length
     inf_dataset     = tf.constant(-2., dtype=tf.float32)
     sup_dataset     = tf.constant(2., dtype=tf.float32)
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps, step_size, population_size,
-                                 lbda, epsilon, inf_dataset, sup_dataset)
+                                 lbda, epsilon, inf_dataset, sup_dataset,
+                                 euclidian_var)
     return avg_loss
 
 
