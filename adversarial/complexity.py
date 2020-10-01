@@ -40,7 +40,9 @@ def cosine_loss(x):  # norm2 distance squared
 
 @tf.function
 def ce_loss(label, y):
-    return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
+    threshold = tf.log(float(y.shape[-1]))
+    full_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
+    thresholded = tf.minimum(full_loss, threshold)
 
 @tf.function
 def multi_targeted(label, y):
@@ -61,10 +63,10 @@ def gradient_step(model, label, x_0, x,
                   step_size, epsilon, lbda,
                   inf_dataset, sup_dataset):
     y = model(x + x_0)
-    # criterion = ce_loss(label, y)
-    criterion = multi_targeted(label, y)
-    # variance = variance_loss(x)
+    criterion = ce_loss(label, y)
     variance = cosine_loss(x)
+    # criterion = multi_targeted(label, y)
+    # variance = variance_loss(x)
     loss = criterion + lbda * variance
     tf.print(criterion, variance, loss)
     g = tf.gradients(loss, [x])[0]
