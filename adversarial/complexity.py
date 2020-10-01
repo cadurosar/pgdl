@@ -104,7 +104,8 @@ def projected_gradient(model, x_0, label,
 
 def adversarial_score(model, dataset, num_batchs_max,
                       num_steps, step_size, population_size,
-                      lbda, epsilon, inf_dataset, sup_dataset):
+                      lbda, epsilon, inf_dataset, sup_dataset,
+                      euclidian_var):
     losses = []
     for (x, label), _ in zip(dataset, progress_bar(num_batchs_max)):
         print('New ascent !!')
