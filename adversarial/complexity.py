@@ -142,15 +142,15 @@ def complexity(model, dataset):
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 256
-    num_steps       = tf.constant(30, dtype=tf.int32)
-    step_size       = tf.constant(2., dtype=tf.float32)
+    num_steps       = tf.constant(100, dtype=tf.int32)
+    step_size       = tf.constant(1., dtype=tf.float32)
     population_size = 8
     length_unit     = sqrt(float(tf.size(dummy_input)))
     epsilon_mult    = 0.3
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
     lbda            = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
     euclidian_var   = True
-    if euclidian_variance:
+    if euclidian_var:
         lbda        = lbda / epsilon  # divide by average length
     inf_dataset     = tf.constant(-2., dtype=tf.float32)
     sup_dataset     = tf.constant(2., dtype=tf.float32)
