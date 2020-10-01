@@ -70,7 +70,7 @@ def generate_population(x_0, label, epsilon, population_size):
     x_0 = tf.broadcast_to(x_0, shape=[population_size]+list(x_0.shape[1:]))
     label = tf.broadcast_to(label, shape=[population_size])
     x = tf.random.normal(x_0.shape, 0., coordinate_wise)  # within the ball
-    tf.print(x)
+    # tf.print(x)
     return x, x_0, label
 
 # @tf.function
