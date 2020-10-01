@@ -43,8 +43,8 @@ def ce_loss(label, y):
     return tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
 
 @tf.function
-def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
-    x = x_0 + tf.clip_by_norm(x - x_0, epsilon)  # return to epsilon ball
+def projection(x, epsilon, inf_dataset, sup_dataset):
+    x = tf.clip_by_norm(x, epsilon)  # return to epsilon ball
     # x = tf.clip_by_value(x, inf_dataset, sup_dataset)  # return to image manifold
     return x
 
@@ -52,7 +52,7 @@ def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
 def gradient_step(model, label, x_0, x,
                   step_size, epsilon, lbda,
                   inf_dataset, sup_dataset):
-    y = model(x)
+    y = model(x + x_0)
     criterion = ce_loss(label, y)
     # variance = variance_loss(x)
     variance = cosine_loss(x)
@@ -60,7 +60,7 @@ def gradient_step(model, label, x_0, x,
     tf.print(criterion, variance, loss)
     g = tf.gradients(loss, [x])[0]
     x = x + step_size * g  # add gradient (Gradient Ascent)
-    x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
+    x = projection(x, epsilon, inf_dataset, sup_dataset)
     # tf.print(x, x - x_0, x_0, sep='\n')
     return x
 
@@ -68,7 +68,7 @@ def gradient_step(model, label, x_0, x,
 def generate_population(x, label, epsilon, population_size):
     x_0 = tf.broadcast_to(x, shape=[population_size]+list(x.shape[1:]))
     label = tf.broadcast_to(label, shape=[population_size])
-    x = tf.random.normal(x_0.shape, x_0, epsilon * 0.5)  # within the ball
+    x = tf.random.normal(x_0.shape, 0., epsilon * 0.5)  # within the ball
     tf.print(x)
     return x, x_0, label
 
@@ -78,12 +78,12 @@ def projected_gradient(model, x, label,
                        lbda, epsilon, inf_dataset, sup_dataset):
     x, x_0, label = generate_population(x, label,
                                         epsilon, population_size)
-    x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
+    x = projection(x, epsilon, inf_dataset, sup_dataset)
     for _ in range(num_steps):
         x = gradient_step(model, label, x_0, x,
                           step_size, epsilon, lbda,
                           inf_dataset, sup_dataset)
-    return ce_loss(label, model(x))
+    return ce_loss(label, model(x + x_0))
 
 
 def adversarial_score(model, dataset, num_batchs_max,
