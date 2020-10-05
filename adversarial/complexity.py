@@ -1,4 +1,4 @@
-"""Manifold Mixup Score.
+"""Adversarial score.
 
 python3 ingestion_program/ingestion_tqdm.py sample_data sample_result_submission ingestion_program adversarial
 python3 scoring_program/score.py sample_data sample_result_submission scores
