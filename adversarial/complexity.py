@@ -123,12 +123,12 @@ def projected_gradient(model, x_0, label,
             last_plateau = step
         last_criterion = criterion
         if step >= last_plateau+patience:
-            if verbose:
-                print(f'Restart with radius {epsilon:.3f}')
             x               = x * dilatation_rate
             epsilon         = epsilon * dilatation_rate
             x               = projection(x, x_0, epsilon, dataset_bounds)
             step_size       = step_size * dilatation_rate
+            if verbose:
+                print(f'Restart with radius {epsilon:.3f}')
             last_plateau    = step
             last_criterion  = tf.constant(-math.inf)
         if last_criterion >= tol_out * sup_ce:
