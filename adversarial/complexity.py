@@ -98,7 +98,7 @@ def generate_population(x_0, label, epsilon, population_size):
     x               = tf.random.normal(x_0.shape, 0., coordinate_wise)  # within the ball
     return x, x_0, label
 
-def may_restart(x_0, x, loss, last_loss, step, last_restart, verbose):
+def may_restart(x_0, x, epsilon, loss, last_loss, step, last_restart, verbose):
     if last_loss is None:
         return x, epsilon, loss, last_restart
     patience, tol = 5, 1e-1
@@ -128,7 +128,9 @@ def projected_gradient(model, x_0, label,
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-        x, epsilon, last_loss, last_restart = may_restart(x_0, x, loss, last_loss, step, last_restart, verbose)
+        x, epsilon, last_loss, last_restart = may_restart(x_0, x, epsilon,
+                                                          loss, last_loss,
+                                                          step, last_restart, verbose)
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var)
 
 
