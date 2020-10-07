@@ -189,7 +189,7 @@ def complexity(model, dataset):
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
     step_size       = tf.constant(1., dtype=tf.float32)
     sup_ce          = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
-    lbda            = 0. * sup_ce  # normalize by typical magnitude
+    lbda            = 1. * sup_ce  # normalize by typical magnitude
     euclidian_var   = False
     if euclidian_var:
         lbda        = lbda / (epsilon*epsilon)  # divide by average length
