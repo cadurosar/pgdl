@@ -108,7 +108,8 @@ def projected_gradient(model, x_0, label,
     tol_out = 0.5
     patience, tol_plateau = 5, 0.1
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
-    if verbose == 2:
+    if verbose:
+        print(' ',end='',flush=True)
         print(f'Start with radius {epsilon:.3f}')
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x,
@@ -117,13 +118,12 @@ def projected_gradient(model, x_0, label,
                                    euclidian_var)
         x, loss, criterion, variance = step_infos
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
-            print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
         if criterion - last_criterion >= tol_plateau * sup_ce:
             last_plateau = step
         last_criterion = criterion
         if step >= last_plateau+patience:
-            if verbose == 2:
+            if verbose:
                 print(f'Restart with radius {epsilon:.3f}')
             x               = x * dilatation_rate
             epsilon         = epsilon * dilatation_rate
