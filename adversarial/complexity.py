@@ -100,7 +100,7 @@ def generate_population(x_0, label, epsilon, population_size):
 
 def may_restart(loss, best_loss, step, last_restart):
     patience, tol = 5, 1e-1
-    return (step-last_restart) >= patience and (loss-last_loss) < tol
+    return (step-last_restart) >= patience and (loss-best_loss) < tol
 
 def projected_gradient(model, x_0, label,
                        num_steps, step_size, population_size,
@@ -180,7 +180,7 @@ def complexity(model, dataset):
     step_size       = tf.constant(2e-1, dtype=tf.float32)
     population_size = 8
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
-    epsilon_mult    = 0.1
+    epsilon_mult    = 0.05
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
     lbda            = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
     euclidian_var   = False
