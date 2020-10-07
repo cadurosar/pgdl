@@ -58,7 +58,7 @@ def multi_targeted(label, y):
 
 @tf.function
 def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
-    x = tf.clip_by_norm(x, epsilon)  # return to epsilon ball
+    x = tf.clip_by_norm(x, epsilon, axes=x.shape[1:])  # return to epsilon ball
     # x = tf.clip_by_value(x + x_0, inf_dataset, sup_dataset) - x_0 # return to image manifold
     return x
 
@@ -106,7 +106,7 @@ def projected_gradient(model, x_0, label,
                                    inf_dataset, sup_dataset,
                                    euclidian_var)
         x, loss, criterion, variance = step_infos
-        if verbose and step+1 == num_steps:
+        if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
     return ce_loss(label, model(x + x_0))
@@ -124,10 +124,11 @@ def adversarial_score(model, dataset, num_batchs_max,
                                      lbda, epsilon, inf_dataset, sup_dataset,
                                      euclidian_var, verbose)
         losses.append(pg_loss)
-    losses = tf.split(tf.stack(losses), num_or_size_splits=3)
+    losses = tf.split(tf.stack(losses), num_or_size_splits=1)
     losses = [tf.reduce_mean(loss) for loss in losses]
     losses = np.median([loss.numpy() for loss in losses])
     return float(tf.reduce_mean(losses))
+
 
 def complexity(model, dataset):
     """Return complexity w.r.t a model and a dataset.
@@ -154,10 +155,10 @@ def complexity(model, dataset):
     output_shape = model(dummy_input).shape
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
-    num_batchs_max  = 300
+    num_batchs_max  = 320
     num_steps       = tf.constant(20, dtype=tf.int32)
     step_size       = tf.constant(1., dtype=tf.float32)
-    population_size = 8
+    population_size = 12
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
     epsilon_mult    = 0.3
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
@@ -167,7 +168,7 @@ def complexity(model, dataset):
         lbda        = lbda / (epsilon*epsilon)  # divide by average length
     inf_dataset     = tf.constant(-2., dtype=tf.float32)
     sup_dataset     = tf.constant(2., dtype=tf.float32)
-    verbose         = False
+    verbose         = 2
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps, step_size, population_size,
                                  lbda, epsilon, inf_dataset, sup_dataset,
