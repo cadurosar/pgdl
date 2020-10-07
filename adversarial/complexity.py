@@ -7,7 +7,7 @@ python3 ingestion_program/ingestion_tqdm.py ../datasets/public_data sample_resul
 python3 scoring_program/score.py ../datasets/public_data sample_result_submission scores"""
 
 import os
-from math import sqrt
+from math import sqrt, inf
 import numpy as np
 import tensorflow as tf
 from utils import progress_bar, balanced_batchs
@@ -109,7 +109,7 @@ def projected_gradient(model, x_0, label,
     x, x_0, label = generate_population(x_0, label,
                                         epsilon, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
-    last_restart, best_loss = 0, tf.constant(0.)
+    last_restart, best_loss = 0, tf.constant(-math.inf)
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x,
                                    step_size, epsilon, lbda,
@@ -124,7 +124,7 @@ def projected_gradient(model, x_0, label,
                 print(f'Restart with radius {epsilon:.3f}')
             x       = x * dilatation_rate
             epsilon = epsilon * dilatation_rate
-            last_restart, best_loss = step, tf.constant(0.)
+            last_restart, best_loss = step, tf.constant(-math.inf)
         else:
             best_loss = tf.maximum(loss, best_loss)
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
