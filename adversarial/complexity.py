@@ -208,7 +208,7 @@ def complexity(model, dataset):
     sup_dataset     = tf.constant( math.inf, dtype=tf.float32)
     dilatation_rate = tf.constant(2.)
     momentum        = False
-    verbose         = 1
+    verbose         = 0
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps, step_size, population_size,
                                  lbda, epsilon, length_unit, sup_ce,
