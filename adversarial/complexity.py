@@ -33,13 +33,13 @@ def cosine_loss(x):
     x_norm_right = tf.expand_dims(x_norm, axis=0)
     x_left = tf.expand_dims(x, axis=1)
     x_right = tf.expand_dims(x, axis=0)
-    dot_per_dim = x_left * x_right
+    dot_per_dim = tf.maximum(x_left * x_right, 0.)  # orthogonal is enough
     non_batch_dims = list(range(2, len(dot_per_dim.shape)))
     unnormalized = tf.reduce_sum(dot_per_dim, axis=non_batch_dims)
     cosine_sim = unnormalized / tf.sqrt(x_norm_left * x_norm_right)
-    cosine_sim = tf.linalg.set_diag(cosine_sim, tf.fill([x.shape[0]], 0.))
+    # cosine_sim = tf.linalg.set_diag(cosine_sim, tf.fill([x.shape[0]], 0.))
     cosine_sim = tf.reduce_mean(cosine_sim)
-    return -cosine_sim  # to be minimized
+    return -cosine_sim  # to be minimized => diametrally opposed vectors !
 
 @tf.function
 def ce_loss(label, y):
