@@ -106,7 +106,7 @@ def projected_gradient(model, x_0, label,
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
     tol_out = 0.5
-    patience, tol_plateau = 5, 0.1
+    patience, tol_plateau = 4, 0.1
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
     if verbose:
         print(' ',end='',flush=True)
@@ -182,7 +182,7 @@ def complexity(model, dataset):
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 320
-    num_steps       = tf.constant(40, dtype=tf.int32)
+    num_steps       = tf.constant(20, dtype=tf.int32)  # at most 5 attempts, 2**5=32 bigger radius
     population_size = 4
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
     epsilon_mult    = 0.02
