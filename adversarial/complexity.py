@@ -25,7 +25,7 @@ def variance_loss(x):
 
 @tf.function
 def cosine_loss(x):
-    x = tf.nn.avg_pool2d(x, ksize=[11, 11], strides=[7, 7],  # ensure that different regions are targeted
+    x = tf.nn.avg_pool2d(x, ksize=[7, 7], strides=[5, 5],  # ensure that different regions are targeted
                          padding='SAME', data_format='NHWC')
     non_batch_dims_norm = list(range(1, len(x.shape)))
     x_norm = tf.reduce_sum(x ** 2, axis=non_batch_dims_norm)
