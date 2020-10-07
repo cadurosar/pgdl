@@ -124,7 +124,7 @@ def projected_gradient(model, x_0, label,
                 print(f'Restart with radius {epsilon:.3f}')
             x       = x * dilatation_rate
             espilon = epsilon * dilatation_rate
-            last_restart, best_loss = step, None
+            last_restart, best_loss = step, tf.constant(0.)
         else:
             best_loss = tf.maximum(loss, best_loss)
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
