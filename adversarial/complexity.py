@@ -116,7 +116,7 @@ def projected_gradient(model, x_0, label,
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-        if criterion - last_criterion >= tol*threshold:
+        if criterion - last_criterion >= tol*sup_ce:
             last_plateau = step
         last_criterion = criterion
         if step >= last_plateau+patience:
