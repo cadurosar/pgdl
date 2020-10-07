@@ -105,7 +105,7 @@ def projected_gradient(model, x_0, label,
     ball_l_inf = epsilon / length_unit
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
-    tol_out = 0.5
+    tol_out = 0.75  # at least 75%
     patience, tol_plateau = 4, 0.1
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
     if verbose:
