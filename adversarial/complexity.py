@@ -114,7 +114,7 @@ def projected_gradient(model, x_0, label,
         print(' ',end='',flush=True)
         print(f'Start with radius {epsilon:.3f}')
     for step in range(num_steps):
-        step_infos = gradient_step(model, label, x_0, x,
+        step_infos = gradient_step(model, label, x_0, x, old_g,
                                    step_size, epsilon, lbda,
                                    dataset_bounds,
                                    euclidian_var)
