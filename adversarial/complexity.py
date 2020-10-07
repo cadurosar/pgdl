@@ -105,8 +105,8 @@ def projected_gradient(model, x_0, label,
     ball_l_inf = epsilon / length_unit
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
-    tol_out = 0.75  # at least 75%
-    patience, tol_plateau = 4, 0.1
+    tol_out = 0.35  # at least 30% for fast detection of successful candidates
+    patience, tol_plateau = 4, 0.05  # at least 5% improvement (6 steps required to trigger detection)
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
     if verbose:
         print(' ',end='',flush=True)
@@ -131,8 +131,8 @@ def projected_gradient(model, x_0, label,
                 print(f'Restart with radius {epsilon:.3f}')
             last_plateau    = step
             last_criterion  = tf.constant(-math.inf)
-        if last_criterion >= tol_out * sup_ce:
-            break  # optimal epsilon have been found
+        if last_criterion >= tol_out * sup_ce:  # optimal epsilon have been found
+            break  # win preciou computation time
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
 
 
@@ -182,8 +182,8 @@ def complexity(model, dataset):
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 320
-    num_steps       = tf.constant(30, dtype=tf.int32)  # at most 10 attempts, 2**10=1024 bigger radius
-    population_size = 8
+    num_steps       = tf.constant(28, dtype=tf.int32)  # at most 10 attempts, 2**10=1024 bigger radius
+    population_size = 12
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
     epsilon_mult    = 0.02
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
