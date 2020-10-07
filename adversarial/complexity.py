@@ -108,6 +108,8 @@ def projected_gradient(model, x_0, label,
     tol_out = 0.5
     patience, tol_plateau = 5, 0.1
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
+    if verbose == 2:
+        print(f'Start with radius {epsilon:.3f}')
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x,
                                    step_size, epsilon, lbda,
