@@ -163,7 +163,7 @@ def complexity(model, dataset):
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
     epsilon_mult    = 0.3
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
-    lbda            = 0. * tf.math.log(tf.constant(num_labels, dtype=tf.float32))
+    lbda            = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
     euclidian_var   = False
     if euclidian_var:
         lbda        = lbda / (epsilon*epsilon)  # divide by average length
