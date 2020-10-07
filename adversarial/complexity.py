@@ -25,7 +25,7 @@ def variance_loss(x):
 
 @tf.function
 def cosine_loss(x):
-    x = tf.nn.avg_pool2d(x, ksize=[7, 7], strides=[5, 5],  # ensure that different regions are targeted
+    x = tf.nn.avg_pool2d(x, ksize=[9, 9], strides=[5, 5],  # ensure that different regions are targeted
                          padding='SAME', data_format='NHWC')
     non_batch_dims_norm = list(range(1, len(x.shape)))
     x_norm          = tf.reduce_sum(x ** 2, axis=non_batch_dims_norm)
@@ -98,7 +98,19 @@ def generate_population(x_0, label, epsilon, population_size):
     x               = tf.random.normal(x_0.shape, 0., coordinate_wise)  # within the ball
     return x, x_0, label
 
-# @tf.function
+def may_restart(x_0, x, loss, last_loss, step, last_restart, verbose):
+    if last_loss is None:
+        return x, epsilon, loss, last_restart
+    patience, tol = 5, 1e-1
+    if (step-last_restart) < patience and (loss-last_loss) >= tol:
+        return x, epsilon, loss, last_restart
+    if verbose == 2:
+        print(f'Restart with radius {epsilon:.3f}')
+    epsilon = epsilon + 0.1
+    x, _, _ = generate_population(x_0, label, epsilon, population_size)
+    x       = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
+    return x, epsilon, None, step
+
 def projected_gradient(model, x_0, label,
                        num_steps, step_size, population_size,
                        lbda, epsilon, inf_dataset, sup_dataset,
@@ -106,6 +118,7 @@ def projected_gradient(model, x_0, label,
     x, x_0, label = generate_population(x_0, label,
                                         epsilon, population_size)
     x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
+    last_restart, last_loss = 0, None
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x,
                                    step_size, epsilon, lbda,
@@ -115,6 +128,7 @@ def projected_gradient(model, x_0, label,
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
+        x, epsilon, last_loss, last_restart = may_restart(x_0, x, loss, last_loss, step, last_restart, verbose)
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var)
 
 
@@ -162,11 +176,11 @@ def complexity(model, dataset):
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 320
-    num_steps       = tf.constant(50, dtype=tf.int32)
+    num_steps       = tf.constant(20, dtype=tf.int32)
     step_size       = tf.constant(2e-1, dtype=tf.float32)
     population_size = 8
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
-    epsilon_mult    = 0.3
+    epsilon_mult    = 0.1
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
     lbda            = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
     euclidian_var   = False
