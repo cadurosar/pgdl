@@ -15,12 +15,12 @@ from utils import progress_bar, balanced_batchs
 
 @tf.function
 def variance_loss(x):
-    x_left = tf.expand_dims(x, axis=1)
-    x_right = tf.expand_dims(x, axis=0)
-    delta_square_per_dim = (x_left - x_right) ** 2.
+    x_left                  = tf.expand_dims(x, axis=1)
+    x_right                 = tf.expand_dims(x, axis=0)
+    delta_square_per_dim    = (x_left - x_right) ** 2.
     non_batch_dims = list(range(2, len(delta_square_per_dim.shape)))
-    square_dists = tf.reduce_sum(delta_square_per_dim, axis=non_batch_dims)
-    avg_dists = tf.reduce_mean(square_dists)
+    square_dists            = tf.reduce_sum(delta_square_per_dim, axis=non_batch_dims)
+    avg_dists               = tf.reduce_mean(square_dists)
     return avg_dists
 
 @tf.function
@@ -28,17 +28,17 @@ def cosine_loss(x):
     x = tf.nn.avg_pool2d(x, ksize=[7, 7], strides=[5, 5],  # ensure that different regions are targeted
                          padding='SAME', data_format='NHWC')
     non_batch_dims_norm = list(range(1, len(x.shape)))
-    x_norm = tf.reduce_sum(x ** 2, axis=non_batch_dims_norm)
-    x_norm_left = tf.expand_dims(x_norm, axis=1)
-    x_norm_right = tf.expand_dims(x_norm, axis=0)
-    x_left = tf.expand_dims(x, axis=1)
-    x_right = tf.expand_dims(x, axis=0)
-    dot_per_dim = x_left * x_right
+    x_norm          = tf.reduce_sum(x ** 2, axis=non_batch_dims_norm)
+    x_norm_left     = tf.expand_dims(x_norm, axis=1)
+    x_norm_right    = tf.expand_dims(x_norm, axis=0)
+    x_left          = tf.expand_dims(x, axis=1)
+    x_right         = tf.expand_dims(x, axis=0)
+    dot_per_dim     = x_left * x_right
     non_batch_dims = list(range(2, len(dot_per_dim.shape)))
-    unnormalized = tf.reduce_sum(dot_per_dim, axis=non_batch_dims)
-    unnormalized = unnormalized ** 2.  # orthogonal is enough
-    cosine_sim = unnormalized / (x_norm_left * x_norm_right)
-    cosine_sim = tf.reduce_mean(cosine_sim)
+    unnormalized    = tf.reduce_sum(dot_per_dim, axis=non_batch_dims)
+    unnormalized    = unnormalized ** 2.  # orthogonal is enough
+    cosine_sim      = unnormalized / (x_norm_left * x_norm_right)
+    cosine_sim      = tf.reduce_mean(cosine_sim)
     return -cosine_sim  # to be minimized
 
 @tf.function
@@ -84,18 +84,18 @@ def gradient_step(model, label, x_0, x,
                   step_size, epsilon, lbda,
                   inf_dataset, sup_dataset,
                   euclidian_var):
-    y = model(x + x_0)
-    loss = full_loss(label, x, y, lbda, euclidian_var)
-    g = tf.gradients(loss, [x])[0]
-    x = apply_gradient(x, g, x_0, step_size, epsilon, inf_dataset, sup_dataset)
+    y       = model(x + x_0)
+    loss    = full_loss(label, y, x, lbda, euclidian_var)
+    g       = tf.gradients(loss, [x])[0]
+    x       = apply_gradient(x, g, x_0, step_size, epsilon, inf_dataset, sup_dataset)
     return x, loss, criterion, variance
 
 @tf.function
 def generate_population(x_0, label, epsilon, population_size):
     coordinate_wise = epsilon / tf.math.sqrt(tf.size(x_0, out_type=tf.float32))  # remove contribution to ball radius
-    x_0 = tf.broadcast_to(x_0, shape=[population_size]+list(x_0.shape[1:]))
-    label = tf.broadcast_to(label, shape=[population_size])
-    x = tf.random.normal(x_0.shape, 0., coordinate_wise)  # within the ball
+    x_0             = tf.broadcast_to(x_0, shape=[population_size]+list(x_0.shape[1:]))
+    label           = tf.broadcast_to(label, shape=[population_size])
+    x               = tf.random.normal(x_0.shape, 0., coordinate_wise)  # within the ball
     return x, x_0, label
 
 # @tf.function
