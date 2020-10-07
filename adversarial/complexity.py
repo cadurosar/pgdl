@@ -45,7 +45,7 @@ def cosine_loss(x):
 def ce_loss(label, y):
     threshold = tf.math.log(float(y.shape[-1]))
     full_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(label, y)
-    full_loss = tf.minimum(full_loss, threshold)  # under smallest possible value
+    full_loss = tf.minimum(full_loss, threshold)  # no need to further penalize
     full_loss = tf.reduce_mean(full_loss)
     return full_loss
 
@@ -71,7 +71,7 @@ def full_loss(label, y, x, lbda, euclidian_var):
 def projection(x, x_0, epsilon, dataset_bounds):
     non_batch_dims = list(range(1, len(x.shape)))
     x = tf.clip_by_norm(x, epsilon, axes=non_batch_dims)  # return to epsilon ball
-    # x = tf.clip_by_value(x + x_0, dataset_bounds[0], dataset_bounds[1]) - x_0 # return to image manifold
+    x = tf.clip_by_value(x + x_0, dataset_bounds[0], dataset_bounds[1]) - x_0 # return to image manifold
     return x
 
 @tf.function
@@ -128,6 +128,8 @@ def projected_gradient(model, x_0, label,
             step_size       = step_size * dilatation_rate
             last_plateau    = step
             last_criterion  = tf.constant(-math.inf)
+        if last_criterion >= (1. - tol) * sup_ce:
+            break  # optimal epsilon have been found
     # it returns optimal epsilon
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
 
@@ -185,12 +187,12 @@ def complexity(model, dataset):
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
     step_size       = tf.constant(5e-1, dtype=tf.float32)
     sup_ce          = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
-    lbda            = 1. * sup_ce
+    lbda            = 1. * sup_ce  # normalize by typical magnitude
     euclidian_var   = False
     if euclidian_var:
         lbda        = lbda / (epsilon*epsilon)  # divide by average length
-    inf_dataset     = tf.constant(-2., dtype=tf.float32)
-    sup_dataset     = tf.constant(2., dtype=tf.float32)
+    inf_dataset     = tf.constant(-math.inf, dtype=tf.float32)
+    sup_dataset     = tf.constant( math.inf, dtype=tf.float32)
     dilatation_rate = tf.constant(2.)
     verbose         = 2
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
