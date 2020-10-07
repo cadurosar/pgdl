@@ -105,7 +105,8 @@ def projected_gradient(model, x_0, label,
     ball_l_inf = epsilon / length_unit
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
-    patience, tol = 5, 0.1
+    tol_out = 0.5
+    patience, tol_plateau = 5, 0.1
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x,
@@ -116,7 +117,7 @@ def projected_gradient(model, x_0, label,
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-        if criterion - last_criterion >= tol*sup_ce:
+        if criterion - last_criterion >= tol_plateau * sup_ce:
             last_plateau = step
         last_criterion = criterion
         if step >= last_plateau+patience:
@@ -128,9 +129,8 @@ def projected_gradient(model, x_0, label,
             step_size       = step_size * dilatation_rate
             last_plateau    = step
             last_criterion  = tf.constant(-math.inf)
-        if last_criterion >= (1. - tol) * sup_ce:
+        if last_criterion >= tol_out * sup_ce:
             break  # optimal epsilon have been found
-    # it returns optimal epsilon
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
 
 
@@ -187,7 +187,7 @@ def complexity(model, dataset):
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
     step_size       = tf.constant(5e-1, dtype=tf.float32)
     sup_ce          = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
-    lbda            = 1. * sup_ce  # normalize by typical magnitude
+    lbda            = 0. * sup_ce  # normalize by typical magnitude
     euclidian_var   = False
     if euclidian_var:
         lbda        = lbda / (epsilon*epsilon)  # divide by average length
