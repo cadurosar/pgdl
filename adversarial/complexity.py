@@ -44,9 +44,10 @@ def cosine_loss(x):
 @tf.function
 def ce_loss(label, y):
     threshold = tf.math.log(float(y.shape[-1]))
-    full_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(label, y))
-    thresholded = tf.minimum(full_loss, threshold)
-    return thresholded
+    full_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(label, y)
+    full_loss = tf.minimum(full_loss, threshold)  # under smallest possible value
+    full_loss = tf.reduce_mean(full_loss)
+    return full_loss
 
 @tf.function
 def multi_targeted(label, y):
@@ -98,10 +99,6 @@ def generate_population(x_0, label, epsilon, population_size):
     x               = tf.random.normal(x_0.shape, 0., coordinate_wise)  # within the ball
     return x, x_0, label
 
-def may_restart(loss, best_loss, step, last_restart):
-    patience, tol = 5, 1e-1
-    return (step-last_restart) >= patience and (loss-best_loss) < tol
-
 def projected_gradient(model, x_0, label,
                        num_steps, step_size, population_size,
                        lbda, epsilon, dataset_bounds,
@@ -109,7 +106,7 @@ def projected_gradient(model, x_0, label,
     x, x_0, label = generate_population(x_0, label,
                                         epsilon, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
-    last_restart, best_loss = 0, tf.constant(-math.inf)
+    last_restart, tol, threshold = 0, 0.8, lbda
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x,
                                    step_size, epsilon, lbda,
@@ -119,7 +116,7 @@ def projected_gradient(model, x_0, label,
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-        if may_restart(loss, best_loss, step, last_restart):
+        if step >= last_restart and criterion < tol*threshold:  # less than tol% of individuals changed 
             if verbose == 2:
                 print(f'Restart with radius {epsilon:.3f}')
             x       = x * dilatation_rate
@@ -127,6 +124,7 @@ def projected_gradient(model, x_0, label,
             last_restart, best_loss = step, tf.constant(-math.inf)
         else:
             best_loss = tf.maximum(loss, best_loss)
+    # it returns optimal epsilon
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
 
 
