@@ -148,7 +148,7 @@ def adversarial_score(model, dataset, num_batchs_max,
         pg_loss, last_radius = pg_results
         losses.append(pg_loss)
         radii.append(last_radius)
-    losses = tf.split(tf.stack(losses), num_or_size_splits=5)  # Median of Means
+    losses = tf.split(tf.stack(losses), num_or_size_splits=1)  # Median of Means
     losses = [tf.reduce_mean(loss) for loss in losses]
     losses = np.median([loss.numpy() for loss in losses])
     return float(tf.reduce_mean(losses))
