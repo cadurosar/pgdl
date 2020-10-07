@@ -7,7 +7,7 @@ python3 ingestion_program/ingestion_tqdm.py ../datasets/public_data sample_resul
 python3 scoring_program/score.py ../datasets/public_data sample_result_submission scores"""
 
 import os
-from math import sqrt, inf
+import math
 import numpy as np
 import tensorflow as tf
 from utils import progress_bar, balanced_batchs
