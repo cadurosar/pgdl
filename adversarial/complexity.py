@@ -76,7 +76,7 @@ def projection(x, x_0, epsilon, dataset_bounds):
 @tf.function
 def apply_gradient(x, g, x_0, step_size, epsilon, dataset_bounds):
     x = x + step_size * g  # Gradient Ascent
-    x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
+    x = projection(x, x_0, epsilon, dataset_bounds)
     return x
 
 @tf.function
@@ -98,13 +98,9 @@ def generate_population(x_0, label, epsilon, population_size):
     x               = tf.random.normal(x_0.shape, 0., coordinate_wise)  # within the ball
     return x, x_0, label
 
-def may_restart(loss, last_loss, step, last_restart):
-    if last_loss is None:
-        return False
+def may_restart(loss, best_loss, step, last_restart):
     patience, tol = 5, 1e-1
-    if (step-last_restart) < patience and (loss-last_loss) >= tol:
-        return False
-    return True
+    return (step-last_restart) >= patience and (loss-last_loss) < tol
 
 def projected_gradient(model, x_0, label,
                        num_steps, step_size, population_size,
@@ -113,7 +109,7 @@ def projected_gradient(model, x_0, label,
     x, x_0, label = generate_population(x_0, label,
                                         epsilon, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
-    last_restart, last_loss = 0, None
+    last_restart, best_loss = 0, tf.constant(0.)
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x,
                                    step_size, epsilon, lbda,
@@ -123,14 +119,14 @@ def projected_gradient(model, x_0, label,
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-        if may_restart(loss, last_loss, step, last_restart):
+        if may_restart(loss, best_loss, step, last_restart):
             if verbose == 2:
                 print(f'Restart with radius {epsilon:.3f}')
             x       = x * dilatation_rate
             espilon = epsilon * dilatation_rate
-            last_restart, last_loss = step, None
+            last_restart, best_loss = step, None
         else:
-            last_loss = loss
+            best_loss = tf.maximum(loss, best_loss)
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
 
 
