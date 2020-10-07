@@ -25,7 +25,7 @@ def variance_loss(x):
 
 @tf.function
 def cosine_loss(x):
-    x = tf.nn.avg_pool2d(x, ksize=[11, 11], strides=[7, 7],
+    x = tf.nn.avg_pool2d(x, ksize=[11, 11], strides=[7, 7],  # ensure that different regions are targeted
                          padding='SAME', data_format='NHWC')
     non_batch_dims_norm = list(range(1, len(x.shape)))
     x_norm = tf.reduce_sum(x ** 2, axis=non_batch_dims_norm)
@@ -33,13 +33,13 @@ def cosine_loss(x):
     x_norm_right = tf.expand_dims(x_norm, axis=0)
     x_left = tf.expand_dims(x, axis=1)
     x_right = tf.expand_dims(x, axis=0)
-    dot_per_dim = tf.maximum(x_left * x_right, 0.)  # orthogonal is enough
+    dot_per_dim = x_left * x_right
     non_batch_dims = list(range(2, len(dot_per_dim.shape)))
     unnormalized = tf.reduce_sum(dot_per_dim, axis=non_batch_dims)
-    cosine_sim = unnormalized / tf.sqrt(x_norm_left * x_norm_right)
-    # cosine_sim = tf.linalg.set_diag(cosine_sim, tf.fill([x.shape[0]], 0.))
+    unnormalized = unnormalized ** 2.  # orthogonal is enough
+    cosine_sim = unnormalized / (x_norm_left * x_norm_right)
     cosine_sim = tf.reduce_mean(cosine_sim)
-    return -cosine_sim  # to be minimized => diametrally opposed vectors !
+    return -cosine_sim  # to be minimized
 
 @tf.function
 def ce_loss(label, y):
