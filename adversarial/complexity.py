@@ -84,11 +84,12 @@ def apply_gradient(x, g, x_0, step_size, epsilon, dataset_bounds):
 def gradient_step(model, label, x_0, x, old_g,
                   step_size, epsilon, lbda,
                   dataset_bounds,
-                  euclidian_var):
+                  euclidian_var, momentum):
     y                           = model(x + x_0)
     loss, criterion, variance   = full_loss(label, y, x, lbda, euclidian_var)
     g                           = tf.gradients(loss, [x])[0]
-    # g                           = tf.constant(0.7) * g + tf.constant(0.3) * old_g
+    if momentum:
+        g = tf.constant(0.7) * g + tf.constant(0.3) * old_g
     x                           = apply_gradient(x, g, x_0, step_size, epsilon, dataset_bounds)
     return x, loss, criterion, variance, g
 
@@ -99,10 +100,17 @@ def generate_population(x_0, label, ball_l_inf, population_size):
     x               = tf.random.normal(x_0.shape, 0., ball_l_inf)  # within the ball
     return x, x_0, label
 
+@tf.function
+def dilate(x, epsilon, step_size, dilatation_rate):
+    x               = x * dilatation_rate
+    epsilon         = epsilon * dilatation_rate
+    step_size       = step_size * dilatation_rate
+    return x, epsilon, step_size
+
 def projected_gradient(model, x_0, label,
                        num_steps, step_size, population_size,
                        lbda, epsilon, length_unit, sup_ce, dataset_bounds,
-                       dilatation_rate, euclidian_var, verbose):
+                       dilatation_rate, euclidian_var, momentum, verbose):
     ball_l_inf = epsilon / length_unit
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
@@ -117,25 +125,25 @@ def projected_gradient(model, x_0, label,
         step_infos = gradient_step(model, label, x_0, x, old_g,
                                    step_size, epsilon, lbda,
                                    dataset_bounds,
-                                   euclidian_var)
+                                   euclidian_var, momentum)
         x, loss, criterion, variance, old_g = step_infos
-        if (verbose == 1 and step+1 == num_steps) or verbose == 2:
+        if verbose == 2:
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
         if criterion - last_criterion >= tol_plateau * sup_ce:
             last_plateau = step
         last_criterion = criterion
         if step >= last_plateau+patience:
-            x               = x * dilatation_rate
-            epsilon         = epsilon * dilatation_rate
-            x               = projection(x, x_0, epsilon, dataset_bounds)
-            step_size       = step_size * dilatation_rate
+            x, epsilon, step_size = dilate(x, epsilon, step_size, dilatation_rate)
+            x = projection(x, x_0, epsilon, dataset_bounds)
             if verbose:
                 print(f'Restart with radius {epsilon:.3f}')
             last_plateau    = step
             last_criterion  = tf.constant(-math.inf)
             old_g           = tf.constant(0.)
         if last_criterion >= tol_out * sup_ce:  # optimal epsilon have been found
-            break  # win preciou computation time
+            break  # gain precious computation time
+    if verbose == 1:
+        print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
 
 
@@ -149,7 +157,7 @@ def adversarial_score(model, dataset, num_batchs_max,
         pg_results = projected_gradient(model, x, label,
                                         num_steps, step_size, population_size,
                                         lbda, epsilon, length_unit, sup_ce, dataset_bounds,
-                                        dilatation_rate, euclidian_var, verbose)
+                                        dilatation_rate, euclidian_var, momentum, verbose)
         pg_loss, last_radius = pg_results
         losses.append(pg_loss)
         radii.append(last_radius)
@@ -186,7 +194,7 @@ def complexity(model, dataset):
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 320
     num_steps       = tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
-    population_size = 12
+    population_size = 4  # small pop for fast radius detection
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
     epsilon_mult    = 0.02
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
@@ -199,12 +207,13 @@ def complexity(model, dataset):
     inf_dataset     = tf.constant(-math.inf, dtype=tf.float32)
     sup_dataset     = tf.constant( math.inf, dtype=tf.float32)
     dilatation_rate = tf.constant(2.)
-    verbose         = 2
+    momentum        = False
+    verbose         = 1
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps, step_size, population_size,
                                  lbda, epsilon, length_unit, sup_ce,
                                  (inf_dataset, sup_dataset),
-                                 dilatation_rate, euclidian_var, verbose)
+                                 dilatation_rate, euclidian_var, momentum, verbose)
     return avg_loss
 
 
