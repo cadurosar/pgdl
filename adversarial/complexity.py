@@ -67,14 +67,14 @@ def full_loss(label, y, x, lbda, euclidian_var):
     return loss, criterion, variance
 
 @tf.function
-def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
+def projection(x, x_0, epsilon, dataset_bounds):
     non_batch_dims = list(range(1, len(x.shape)))
     x = tf.clip_by_norm(x, epsilon, axes=non_batch_dims)  # return to epsilon ball
-    # x = tf.clip_by_value(x + x_0, inf_dataset, sup_dataset) - x_0 # return to image manifold
+    # x = tf.clip_by_value(x + x_0, dataset_bounds[0], dataset_bounds[1]) - x_0 # return to image manifold
     return x
 
 @tf.function
-def apply_gradient(x, g, x_0, step_size, epsilon, inf_dataset, sup_dataset):
+def apply_gradient(x, g, x_0, step_size, epsilon, dataset_bounds):
     x = x + step_size * g  # Gradient Ascent
     x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
     return x
@@ -82,12 +82,12 @@ def apply_gradient(x, g, x_0, step_size, epsilon, inf_dataset, sup_dataset):
 @tf.function
 def gradient_step(model, label, x_0, x,
                   step_size, epsilon, lbda,
-                  inf_dataset, sup_dataset,
+                  dataset_bounds,
                   euclidian_var):
     y                           = model(x + x_0)
     loss, criterion, variance   = full_loss(label, y, x, lbda, euclidian_var)
     g                           = tf.gradients(loss, [x])[0]
-    x                           = apply_gradient(x, g, x_0, step_size, epsilon, inf_dataset, sup_dataset)
+    x                           = apply_gradient(x, g, x_0, step_size, epsilon, dataset_bounds)
     return x, loss, criterion, variance
 
 @tf.function
@@ -98,54 +98,56 @@ def generate_population(x_0, label, epsilon, population_size):
     x               = tf.random.normal(x_0.shape, 0., coordinate_wise)  # within the ball
     return x, x_0, label
 
-def may_restart(x_0, x, epsilon, loss, last_loss, step, last_restart, verbose):
+def may_restart(loss, last_loss, step, last_restart):
     if last_loss is None:
-        return x, epsilon, loss, last_restart
+        return False
     patience, tol = 5, 1e-1
     if (step-last_restart) < patience and (loss-last_loss) >= tol:
-        return x, epsilon, loss, last_restart
-    if verbose == 2:
-        print(f'Restart with radius {epsilon:.3f}')
-    epsilon = epsilon + 0.1
-    x, _, _ = generate_population(x_0, label, epsilon, population_size)
-    x       = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
-    return x, epsilon, None, step
+        return False
+    return True
 
 def projected_gradient(model, x_0, label,
                        num_steps, step_size, population_size,
-                       lbda, epsilon, inf_dataset, sup_dataset,
-                       euclidian_var, verbose):
+                       lbda, epsilon, dataset_bounds,
+                       dilatation_rate, euclidian_var, verbose):
     x, x_0, label = generate_population(x_0, label,
                                         epsilon, population_size)
-    x = projection(x, x_0, epsilon, inf_dataset, sup_dataset)
+    x = projection(x, x_0, epsilon, dataset_bounds)
     last_restart, last_loss = 0, None
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x,
                                    step_size, epsilon, lbda,
-                                   inf_dataset, sup_dataset,
+                                   dataset_bounds,
                                    euclidian_var)
         x, loss, criterion, variance = step_infos
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-        x, epsilon, last_loss, last_restart = may_restart(x_0, x, epsilon,
-                                                          loss, last_loss,
-                                                          step, last_restart, verbose)
-    return full_loss(label, model(x + x_0), x, lbda, euclidian_var)
+        if may_restart(loss, last_loss, step, last_restart):
+            if verbose == 2:
+                print(f'Restart with radius {epsilon:.3f}')
+            x       = x * dilatation_rate
+            espilon = epsilon * dilatation_rate
+            last_restart, last_loss = step, None
+        else:
+            last_loss = loss
+    return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
 
 
 def adversarial_score(model, dataset, num_batchs_max,
                       num_steps, step_size, population_size,
-                      lbda, epsilon, inf_dataset, sup_dataset,
-                      euclidian_var, verbose):
-    losses = []
+                      lbda, epsilon, dataset_bounds,
+                      dilatation_rate, euclidian_var, verbose):
+    losses, radii = [], []
     for (x, label), _ in zip(dataset, progress_bar(num_batchs_max)):
         # print('Sizes: ', tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
-        pg_loss = projected_gradient(model, x, label,
-                                     num_steps, step_size, population_size,
-                                     lbda, epsilon, inf_dataset, sup_dataset,
-                                     euclidian_var, verbose)
+        pg_results = projected_gradient(model, x, label,
+                                        num_steps, step_size, population_size,
+                                        lbda, epsilon, dataset_bounds,
+                                        dilatation_rate, euclidian_var, verbose)
+        pg_loss, last_radius = pg_results
         losses.append(pg_loss)
+        radii.append(last_radius)
     losses = tf.split(tf.stack(losses), num_or_size_splits=5)  # Median of Means
     losses = [tf.reduce_mean(loss) for loss in losses]
     losses = np.median([loss.numpy() for loss in losses])
@@ -190,11 +192,12 @@ def complexity(model, dataset):
         lbda        = lbda / (epsilon*epsilon)  # divide by average length
     inf_dataset     = tf.constant(-2., dtype=tf.float32)
     sup_dataset     = tf.constant(2., dtype=tf.float32)
+    dilatation_rate = tf.constant(2.)
     verbose         = 2
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps, step_size, population_size,
-                                 lbda, epsilon, inf_dataset, sup_dataset,
-                                 euclidian_var, verbose)
+                                 lbda, epsilon, (inf_dataset, sup_dataset),
+                                 dilatation_rate, euclidian_var, verbose)
     return avg_loss
 
 
