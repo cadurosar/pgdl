@@ -99,7 +99,7 @@ def generate_population(x_0, label, epsilon, population_size):
     return x, x_0, label
 
 def may_restart(loss, best_loss, step, last_restart):
-    patience, tol = 5, 1e-1
+    patience, tol = 4, 1e-1
     return (step-last_restart) >= patience and (loss-best_loss) < tol
 
 def projected_gradient(model, x_0, label,
@@ -123,7 +123,7 @@ def projected_gradient(model, x_0, label,
             if verbose == 2:
                 print(f'Restart with radius {epsilon:.3f}')
             x       = x * dilatation_rate
-            espilon = epsilon * dilatation_rate
+            epsilon = epsilon * dilatation_rate
             last_restart, best_loss = step, tf.constant(0.)
         else:
             best_loss = tf.maximum(loss, best_loss)
