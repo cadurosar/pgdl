@@ -88,7 +88,7 @@ def gradient_step(model, label, x_0, x, old_g,
     y                           = model(x + x_0)
     loss, criterion, variance   = full_loss(label, y, x, lbda, euclidian_var)
     g                           = tf.gradients(loss, [x])[0]
-    g                           = tf.constant(0.7) * g + tf.constant(0.3) * old_g
+    # g                           = tf.constant(0.7) * g + tf.constant(0.3) * old_g
     x                           = apply_gradient(x, g, x_0, step_size, epsilon, dataset_bounds)
     return x, loss, criterion, variance, g
 
@@ -109,7 +109,7 @@ def projected_gradient(model, x_0, label,
     tol_out = 0.24  # at least 24% for fast detection of successful candidates
     patience, tol_plateau = 3, 0.03  # at least 3% improvement (8 steps required to trigger detection)
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
-    old_g = tf.constant(0.)
+    old_g = tf.constant(0.)  # gradient momentum, dangerous outside stochastic regime
     if verbose:
         print(' ',end='',flush=True)
         print(f'Start with radius {epsilon:.3f}')
