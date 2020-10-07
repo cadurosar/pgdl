@@ -81,15 +81,16 @@ def apply_gradient(x, g, x_0, step_size, epsilon, dataset_bounds):
     return x
 
 @tf.function
-def gradient_step(model, label, x_0, x,
+def gradient_step(model, label, x_0, x, old_g,
                   step_size, epsilon, lbda,
                   dataset_bounds,
                   euclidian_var):
     y                           = model(x + x_0)
     loss, criterion, variance   = full_loss(label, y, x, lbda, euclidian_var)
     g                           = tf.gradients(loss, [x])[0]
+    g                           = tf.constant(0.7) * g + tf.constant(0.3) * old_g
     x                           = apply_gradient(x, g, x_0, step_size, epsilon, dataset_bounds)
-    return x, loss, criterion, variance
+    return x, loss, criterion, variance, g
 
 @tf.function
 def generate_population(x_0, label, ball_l_inf, population_size):
@@ -105,9 +106,10 @@ def projected_gradient(model, x_0, label,
     ball_l_inf = epsilon / length_unit
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
-    tol_out = 0.30  # at least 30% for fast detection of successful candidates
-    patience, tol_plateau = 3, 0.05  # at least 5% improvement (6 steps required to trigger detection)
+    tol_out = 0.24  # at least 24% for fast detection of successful candidates
+    patience, tol_plateau = 3, 0.03  # at least 3% improvement (8 steps required to trigger detection)
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
+    old_g = tf.constant(0.)
     if verbose:
         print(' ',end='',flush=True)
         print(f'Start with radius {epsilon:.3f}')
@@ -116,7 +118,7 @@ def projected_gradient(model, x_0, label,
                                    step_size, epsilon, lbda,
                                    dataset_bounds,
                                    euclidian_var)
-        x, loss, criterion, variance = step_infos
+        x, loss, criterion, variance, old_g = step_infos
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
         if criterion - last_criterion >= tol_plateau * sup_ce:
@@ -131,6 +133,7 @@ def projected_gradient(model, x_0, label,
                 print(f'Restart with radius {epsilon:.3f}')
             last_plateau    = step
             last_criterion  = tf.constant(-math.inf)
+            old_g           = tf.constant(0.)
         if last_criterion >= tol_out * sup_ce:  # optimal epsilon have been found
             break  # win preciou computation time
     return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
