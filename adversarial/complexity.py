@@ -64,7 +64,7 @@ def full_loss(label, y, x, lbda, euclidian_var):
     else:
         variance = cosine_loss(x)
     loss = criterion + lbda * variance
-    return loss
+    return loss, criterion, variance
 
 @tf.function
 def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
@@ -84,10 +84,10 @@ def gradient_step(model, label, x_0, x,
                   step_size, epsilon, lbda,
                   inf_dataset, sup_dataset,
                   euclidian_var):
-    y       = model(x + x_0)
-    loss    = full_loss(label, y, x, lbda, euclidian_var)
-    g       = tf.gradients(loss, [x])[0]
-    x       = apply_gradient(x, g, x_0, step_size, epsilon, inf_dataset, sup_dataset)
+    y                           = model(x + x_0)
+    loss, criterion, variance   = full_loss(label, y, x, lbda, euclidian_var)
+    g                           = tf.gradients(loss, [x])[0]
+    x                           = apply_gradient(x, g, x_0, step_size, epsilon, inf_dataset, sup_dataset)
     return x, loss, criterion, variance
 
 @tf.function
