@@ -1,0 +1,797 @@
+\documentclass{article}
+ 
+\usepackage[preprint]{neurips_2020}
+%preprint
+%\usepackage{cite}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{natbib}
+\setcitestyle{numbers,square}
+\usepackage{dsfont}
+%\usepackage{siunitx}
+%multi-row
+\usepackage{multirow}
+\usepackage{bbm}
+\usepackage{bm}
+\makeatletter
+\newcommand{\Spvek}[2][r]{%
+  \gdef\@VORNE{1}
+  \left(\hskip-\arraycolsep%
+    \begin{array}{#1}\vekSp@lten{#2}\end{array}%
+  \hskip-\arraycolsep\right)}
+
+\def\vekSp@lten#1{\xvekSp@lten#1;vekL@stLine;}
+\def\vekL@stLine{vekL@stLine}
+\def\xvekSp@lten#1;{\def\temp{#1}%
+  \ifx\temp\vekL@stLine
+  \else
+    \ifnum\@VORNE=1\gdef\@VORNE{0}
+    \else\@arraycr\fi%
+    #1%
+    \expandafter\xvekSp@lten
+  \fi}
+\makeatother
+
+\def\pd{\partial}
+\def\sen{\mathop{\rm sen}\nolimits} % seno
+\def\senh{\mathop{\rm senh}\nolimits}
+\def\N{\mathbb{N}}
+\def\Z{\mathbb{Z}}
+\def\Q{\mathbb{Q}}
+\def\R{\mathbb{R}}
+\def\C{\mathbb{C}} 
+
+\newtheorem{Theorem}{Theorem}
+\newtheorem{Proposition}{Proposition}
+\newtheorem {Lemma}[Proposition] {Lemma}
+\newtheorem {Corollary}[Proposition]{Corollary}
+\newtheorem {Remark}[Proposition]{Remark}
+\newtheorem {Example}{Example}[section]
+\newtheorem {Definition}{Definition}[section]
+\newtheorem {Figure}{Figure}[section]
+\newcommand{\W}{\mathcal{W}}
+\newcommand{\Deellip}{
+\textit{DEEL.LIP}\footnote{https://github.com/deel-ai/deel-lip to be published soon}
+}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+%\title{hinge regularized optimal transportation for robust classification}
+\title{Achieving robustness in classification using optimal transport with hinge regularization}
+\author{
+  Mathieu Serrurier \\
+  IRIT\\
+  Universit\'{e} Paul Sabatier Toulouse
+  \And
+  Franck Mamalet\\
+  IRT Saint-Exupery
+ \And
+  Alberto Gonz\'{a}lez-Sanz\\
+  IMT\\
+  Universit\'{e} Paul Sabatier Toulouse
+  \And
+  Thibaut Boissin\\
+  IRT Saint-Exupery
+ \And
+  Jean-Michel Loubes \\
+  IMT\\
+  Universit\'{e} Paul Sabatier Toulouse
+ \And
+  Eustasio del Barrio \\
+  Dpto. de Estad\'{\i}stica e Investigaci\'{o}n Operativa\\
+  Universidad de Valladolid  
+}
+\maketitle
+\begin{abstract}
+We propose a new framework for robust binary classification, with Deep Neural Networks,  based on a hinge regularization of the Kantorovich-Rubinstein dual formulation for the estimation of the Wasserstein distance. The robustness of the approach is guaranteed by the strict Lipschitz constraint on functions required by the optimization problem and direct interpretation of the loss in terms of adversarial robustness. We prove that this classification formulation has a solution, and is still the dual formulation of an optimal transportation problem.  We also establish the geometrical properties of this optimal solution. We summarize  state-of-the-art methods to enforce Lipschitz constraints on neural networks and we propose new ones for convolutional networks (associated with an open source library for this purpose). The experiments show that the approach provides the expected guarantees in terms of robustness without any significant accuracy drop. The results also suggest that adversarial attacks on the proposed models visibly and meaningfully change the input, and can thus serve as an explanation for the classification.
+% We also experimented adversarial attack on the proposed model, which suggests that visible and meaningfull changes must be made to the input in order to be mis-classified. This opens perspectives to 
+%The results also suggest that adversarial attacks on the proposed models require to perform explicit change on the input critical part, and can thus serve as an explanation for the classification.
+\end{abstract}
+\section{Introduction}
+\label{sec:intro}
+
+The important progress in deep learning has led to a massive interest for these approaches in industry. However, when machine learning is applied for critical tasks such has in the transportation or the medical domain, empirical and theoretical guarantees are required. Some recent papers \cite{Ducoffe20} propose theoretical guarantees for particular neural networks, but this remains an open problem for Deep Neural Networks.
+Empirically, weakness of deep models with respect to adversarial attack was first shown in \cite{szegedy2013}, and is an active research topic. \cite{szegedy2013} pointed out that sensitivity to adversarial attack is closely related to the high Lipschitz constant of an unconstrained deep classifier. Defense methods relying on Lipschitz constraints have also been proposed \cite{cisse_parseval_2017,hein_formal_2017,ono_lightweight_2018,qian_l2-nonexpansive_2019}. 
+Moreover it has been proven that limiting the Lipschitz constant improves generalisation \cite{Sokolic_2017} and the interpretability of the model \cite{tsipras2018robustness}, i.e. higher sparsity and interpretability. Counterfactual explanation in machine learning considers what we have to change in a situation to change the prediction \cite{DBLP:journals/corr/abs-1711-00399}. For models based on high-level language such as logic, this modification is interpretable as itself and provides an explanation of the prediction. It turns out that, for neural networks, the definition of counterfactual corresponds exactly to adversarial attacks, but these are usually indistinguishable from noise.
+
+k-Lipschitz networks have also been used in Wasserstein GAN \cite{Arjovsky2017} to measure the distance between two distributions as a discriminator, in analogy with the initial GAN algorithm \cite{Goodfellow2014}. The Wasserstein distance is approximated using a loss based on the Kantorovich-Rubinstein dual formulation and a k-Lipschitz network constrained by weight clipping. An interesting property of this approach, but not harnessed in WGAN,  is the link with optimal transportation that provides a nice interpretation of the loss function in terms of robustness.
+However, we will show that a vanilla classifier based on the Kantorovich-Rubinstein problem is suboptimal, even on toy datasets. 
+
+In this paper, we propose a binary classifier based on a regularized version of the dual formulation of the Wasserstein distance, combining the Kantorovich-Rubinstein loss function with a hinge loss. With this new optimization problem, we ensure to have an accurate classifier with a loss that has a direct interpretation in terms of robustness due to the 1-Lipschitz constraint. Moreover, we show that it is still the dual of an optimal transportation problem. We prove that the optimal solution of the problem exists and makes no error when the classes are well separated. Our approach shares some similarities with Parseval networks \cite{cisse_parseval_2017}, in the way we constraint the Lipschitz constant of the networks by spectral normalization and orthonormalization of the weights. However, the new loss function we propose takes a better advantage of the Lipschitz constant limitation. The geometric properties of the optimal solution of our problem encourage us to consider more advanced regularization techniques proposed in \cite{pmlr-v97-anil19a} such as B\"jorck normalization and a gradient preserving activation function. Experimentation shows that the proposed approach  matches the state-of-the-art in terms
+of accuracy and demonstrates higher robustness to adversarial attacks. We also emphasizes that the classifier output has a direct interpretation in terms of robustness.
+%\footnote{{\color{red} (FRANCK: in term of optimal transport ?)}}. %and can be used for defining a rejection rules. 
+Last, we show that adversarial examples for our classifier perform input changes that are interpretable %\footnote{{\color{red} (FRANCK: repetition de interpretation et pas dans le meme sens ?)}}
+, and thus are close to the notion of counterfactuals. 
+
+The paper, and the contributions, are structured as follows. In Section~\ref{sec:wass_distance}, we recall the definition of Wasserstein distance and the dual optimization problem associated. We present the interesting properties of a classifier based on this approach and we illustrate that it leads to a suboptimal classifier. Section~\ref{sec:kr_hinge} describes the proposed binary classifier, based on a regularized version of the Kantorovich-Rubinstein loss with a hinge loss. We show that the primal of this classification problem is a new optimal transport problem and we demonstrate different properties of our approach. Section~\ref{sec:lip_const} is devoted to the way of constraining the classifier to be  1-Lipschitz. We recall the different approaches to performs Lipschitz regularization, 
+and also propose a new way to consider the regularization for convolutional and pooling layers. Section~\ref{sec:experimentation} presents the results of  experiments on MNIST and CelebA datasets, measuring and comparing the results of different approaches in terms of accuracy and robustness. It also illustrates that the 1-Lipschitz constraint is satisfied. Last, we demonstrate that with our approach, building an adversarial example requires explicitly changing the example to an in-between two-classes image. We also show that we can easily build a counterfactual example, based the gradient of our network on the considered point, that can be used as an explanation for a classification. Proofs, computations details and additional experiments are reported in the appendix. 
+
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Wasserstein distance and Kantorovich-Rubinstein classifier}
+\label{sec:wass_distance}
+
+%\subsection{Wasserstein distance}
+In this paper we only consider the Wasserstein-1 distance, also called Earth-mover, and noted $\W$ for $\W_1$.
+The $1$-Wasserstein distance between two probability distributions $\mu$ and $\nu$ in $\Omega$, and its dual formulation by Kantorovich-Rubinstein duality \cite{villani2008}, is defined as the solution of:
+\begin{subequations}
+
+\begin{align}
+\W(\mu,\nu) & = \inf_{\pi \in \Pi(\mu,\nu)}\underset{x,z \sim \pi}{\mathbb{E}}\parallel \textbf{x}-\textbf{z} \parallel \label{wasserstein}\\
+  & =\sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}} \left[f(\textbf{x} )\right] -\underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right] \label{kantorovich}
+\end{align}
+\end{subequations}
+
+where $\Pi(\mu,\nu)$ is the set of all probability measures on $\Omega\times \Omega$ with marginals $\mu$ and $\nu$ and $Lip_1(\Omega)$ denotes the space of 1-Lipschitz functions over $\Omega$. 
+Although, the infimum in Eq.~\eqref{wasserstein} is not tractable in general, the dual problem can be estimated through the optimization of a regularized neural network. This approach has been introduced in WGAN  \cite{Arjovsky2017} where $Lip_1(\Omega)$ is approximated by the set of neural networks with bounded weights (better approaches to achieve it will be discussed in Section~\ref{sec:lip_const}). 
+%As a second step, the approach proposed in \cite{Arjovsky2017} is based on estimation of the supremum in \eqref{kantorovich} by replacing $Lip_1(\Omega)$ by the set of functions described by a fixed neural network architecture with bounded weights. 
+%Although this approach is crude (the geometry of the Wasserstein metric is distorted), it provides a general methodology to estimate and optimize divergences \textit{à la} Wasserstein and leads to interesting empirical results \cite{Arjovsky2017}.{\color{red} (MATHIEU: completer un peut-> transition vers notre approche)}
+
+
+%\subsection{Kantorovich-Rubinstein classifier}
+%\label{wass_prop}
+We consider a binary classification problem on feature vector space $X\subset \Omega$ and and labels $Y= \{-1,1\}$. We name $P_+=\mathbb{P}(X|Y=1)$ and  $P_-=\mathbb{P}(X|Y=-1)$, the conditional distributions with respect to Y. We note $p=P(Y=1)$ and $1-p=P(Y=-1)$ the apriori class distribution. The classification problem is balanced when $p=\frac{1}{2}$.\\
+
+In WGAN, \cite{Arjovsky2017} proposed to use the learned neural network (denoted $\hat{f}$ in the following),  by maximizing the Eq.~\eqref{kantorovich}, as a discriminator between fake and real images, in analogy with GAN~\cite{Goodfellow2014}.
+%\footnote{{\color{red} (FRANCK:proposition de reformulation, l'ancienne version est commentee)}} 
+%In analogy with GAN~\cite{Goodfellow2014}, the function obtained by optimizing equation~\ref{kantorovich} (denoted $\hat{f}$ in the following) in WGAN behaves like a discriminator between fake and real examples. 
+To build a classifier based on $\hat{f}$, one can simply note that if  $f^*$ is an optimal solution of Eq.~\eqref{kantorovich}, then  $f^* + C, C\in \mathbb{R}$, is also optimal. Centering the function $f^*$ (resp. $\hat{f}$), Eq.~\eqref{eq:wass_vanilla_classif}, enables classification according to the sign of $f_c^*(x)$ (resp.$\hat{f_c}$ for the empirical solution).
+%\footnote{{\color{red} (FRANCK:idem, l'ancienne version est commentee)}} 
+%Let $f^*$ is an optimal solution of Equation~\eqref{kantorovich}, then $f^* + c, c\in \mathbb{R}$, is also optimal. In order to build a classifier, the simplest solution consists in centering the function $f^*$ (resp. $\hat{f}$)  as follows:The class correspond to the sign of $f_c^*(x)$ (resp.$\hat{f_c}$ for the empirical solution). 
+\begin{equation}
+\label{eq:wass_vanilla_classif}
+f_c^*(\textbf{x} )=f^*(\textbf{x} )-\frac{1}{2}\left(\underset{\textbf{z}  \sim P_+}{\mathbb{E}} \left[f^*(\textbf{z} )\right] +\underset{\textbf{z}  \sim P_-}{\mathbb{E}} \left[f^*(\textbf{z} )\right]\right).
+\end{equation}
+
+Such a classifier would exhibit  good properties in terms of robustness for two main reasons: First, it has been shown in \cite{villani2008} that the function $f^*$ is directly related to the cost of transportation between two points linked by the transportation plan (when $\pi^*(x=y)=0$) as follows:
+
+%Let denote $\hat{f}$ the function obtained by optimizing equation~\ref{kantorovich} 
+%In the balanced discrete case, it has been shown {\color{red} (FRANCK: Ref ?)} that the optimal transport plan is an 1-1 transportation plan (i.e. $\Pi^*_{i,j} \in\{0,1\}$) and:
+%\begin{equation}
+%\forall i,j\text{ s.a. }\Pi^*_{i,j}=1,  F^*_i-F^*_{n+j}= C_{i,j}
+%\end{equation}
+%where $F^*$ is the optimal solution of the dual optimal transport problem. 
+
+\begin{equation}
+\label{eq:transport_cost}
+\mathbb{P}_{\textbf{x},\textbf{z}\sim \pi^*}(f^*(\textbf{x})-f^*(\textbf{z})=||\textbf{x}-\textbf{z}||)=1.
+\end{equation}
+ %This shows that the function $f^*$ is directly related to the cost of transportation between two point linked by the transportation plan. 
+ Second, it was shown in \cite{gulrajani2017improved,pmlr-v97-anil19a}, that this optimal solution also induces a property stronger  than 1-Lipschitz:
+\begin{equation}
+\label{eq:nabla_1}
+||\nabla f^* ||=1 \text{ almost surely on the support of }\pi^*.
+\end{equation}
+%The previous properties with respect to the transportation plan and the 1-Lipschitz constraint also underlined good properties in terms of robustness. 
+
+However, applying this vanilla classifier (Eq.~\eqref{eq:wass_vanilla_classif}) to a toy dataset such as the two-moons problem, leads to a poor accuracy.
+Indeed, Figures~\ref{wass:sub1} and~\ref{wass:sub2} present respectively the distribution of the values of $\hat{f_c}(x)$ conditionally to the classes and the level map of $\hat{f_c}$. We can observe that, even if the classes are easily separable, the distributions of the values of $\hat{f_c}$ conditionally to the class overlap. Thus, the 0-level threshold on $\hat{f_c}$ does not correspond to the optimal separator (even if it is better than random). Intuitively, $\hat{f_c}$  
+%{\color{red} (FRANCK: $f*$?)} 
+maximizes the difference of the expectancy of the image of  
+the two distributions but do not try to minimize their overlap (Fig.~\ref{wass:sub1}). 
+%We can also note %remark 
+%that, for $\W$ 
+%and the Earth-mover distance, 
+%the solution is not unique.
+%{\color{red} ( Thibaut ) on fait une analogie avec les WGAN avant de d'expliciter comment on fait la classification a partir de  f ( eq 11 ), ce qui risque plus d'embrouiller le lecteur. ( Entre le discriminateur d'un GAN, la régularization de Wasserstein d'un GAN et notre classifier, la confusion peut vite arriver )\\
+%MAthieu -> exact!}\\
+%{FRANCK -> yes tentative d'explicitation differente dans l'intro! plus qqes reofrmulations ci dessous}
+%In analogy with GAN \cite{Goodfellow2014}, the network that computes the function $f$ with respect to Kantorovich-Rubinstein formulation in WGAN can be viewed as a classifier.  
+%{\color{red}(MATHIEU) : faire l'exemple avec le transport optimal et le seuil)}
+\begin{figure}
+\centering
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth]{img/wass_2moons_dist.png}
+  \caption{Distribution of $\hat{f_c}$ conditionally to the classes}
+  \label{wass:sub1}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth]{img/wass_2moons_class.png}
+  \caption{Level map of $\hat{f_c}$}
+  \label{wass:sub2}
+\end{subfigure}
+\caption{Wasserstein classification (Eq.~\eqref{eq:wass_vanilla_classif}) on the two moons.}
+\label{fig:wass}
+\end{figure}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Hinge regularized Kantorovich-Rubinstein classifier }
+\label{sec:kr_hinge}
+%In this section we propose a regularized version of the Kantorovich-Rubinstein problem and we prove that it is still the dual of a transportation problem. Furthermore, we show that it has good properties in terms of robustness for classification problem.
+\subsection{Definitions and primal transportation problem}
+%\begin{figure}
+%  \centering
+%  \includegraphics[width=0.7\linewidth]{img/loss_function.png}
+%  \caption{$\mathcal{L}_{\W pen}$ loss function with respect to $yf(x)$.}
+%  \label{fig:loss}
+%\end{figure}%
+In order to improve the classification abilities of the classifier based on Wasserstein distance, we propose a Kantorovich-Rubinstein optimization problem regularized by an hinge loss :
+\begin{equation}
+\label{eq:reg_OT}
+\sup_{f \in Lip_1(\Omega)}-\mathcal{L}^{hKR}_\lambda(f)= \sup_{f \in Lip_1(\Omega)}-\left(\underset{\textbf{x}  \sim P_-}{\mathbb{E}} \left[f(\textbf{x})\right] -\underset{\textbf{x} \sim P_+}{\mathbb{E}}\left[f(\textbf{x})\right] +\lambda\underset{\textbf{x}}{\mathbb{E}} \left(1-Yf(\textbf{x})\right)_+\right)
+\end{equation}
+where $(1-\textbf{y}f(\textbf{x}))_+$ stands for the hinge loss $max(0,1-\textbf{y}f(\textbf{x}))$ and $\lambda>=0$. We name $\mathcal{L}^{hKR}_\lambda$ the hinge-KR loss. The goal is then to minimize this loss with an 1-Lipschitz neural network.
+
+%we propose to replace the Wasserstein dual formulation, by the 
+%of Wasserstein dual function, we propose the 
+%following penalized version of Kantorovich-Rubinstein optimization problem that include an hinge loss:
+
+When $\lambda=0$, this corresponds to the Kantorovich-Rubinstein dual optimization problem. Intuitively, the 1-Lipschitz function $f^*$ optimal with respect to Eq.~\eqref{eq:reg_OT} is the one that both separates the examples with a margin and spreads as much as possible the image of the distributions.
+%{\color{red} (FRANCK: Cette phrase me parait inutile vu que c'est LIP1)It is obvious that, if the function $f$ is a neural network, this loss makes sense only if we constrain its Lipschitz constant. If not, $\W_{pen}$ will be infinite.} For misclassified or inside-margin samples the hinge-loss part is dominant, and the Kantorovich-Rubinstein part for the others samples. 
+%The loss function behave like hinge-loss for miss-classified, or inside the margin examples example and like Kantorovich-Rubinstein function for the other. 
+
+
+In the following, we introduce Theorems that prove the existence of such an optimal function $f^*$ and important properties of this function. Demonstrations of these theorems are in Appendix~\ref{appendix:proofs}.
+\begin{Theorem} [Solution existence]
+\label{Lemma:bounded_M}
+ For each $\lambda>0$ there exists at least a solution $f^*$ to the problem  \[ f^*:=f_{\lambda}^*\in{\arg\min}_{f\in \text{Lip}_1(\Omega)}\mathcal{L}^{hKR}_{\lambda}(f) . \]
+\end{Theorem}
+Moreover, let $\psi$ be an optimal transport potential for the transport problem from $P_+$ to $ P_-$, $f^*$ satisfies that 
+\begin{align}\label{eq:M}
+	|| f^*||_{\infty}\leq M:= 1+\text{diam}(\Omega)+\frac{L_1(\psi)}{\inf(p,1-p)}.
+\end{align}
+%\footnote {{\color{red} (Franck) ne faudrait-il pas commenter l'apport de cette inégalité?  ?}}
+The next theorem establishes that the Kantorovich-Rubinstein optimization problem with hinge regularization is still a transportation problem with relaxed constraints on the joint measure (which is no longer a joint probability measure).
+\begin{Theorem}[Duality]\label{Theo:dual}
+Set  $P_+, P_-\in \mathcal{P}(\Omega)$ and $\lambda>0$, then the following equality holds
+\begin{align}\label{eq:dual}
+\begin{split}
+ \sup_{f\in \text{Lip}_1(\Omega)}- \mathcal{L}^{hKR}_\lambda(f)=	\inf_{\pi \in\Pi^p_{\lambda}(P_+, P_-)}\int_{\Omega\times \Omega}|{\textbf{x}}-{{\textbf{z}}} |d\pi + \pi_{\textbf{x}}(\Omega)+\pi_{{\textbf{z}}}(\Omega)-1
+	\end{split}
+\end{align}
+Where $\Pi^p_{\lambda}(P_+, P_-)$ is the set consisting of positive measures $\pi\in \mathcal{M}_+(\Omega\times \Omega)$ which  are absolutely continuous with respect to the joint measure $dP_+\times dP_-$ and $\frac{d\pi_{\textbf{x}}}{dP_+}\in [p, p(1+\lambda)]$, $\frac{d\pi_{{\textbf{z}}}}{dP_-}\in [1-p, (1-p)(1+\lambda)] $.
+%\footnote {{\color{red} (Franck) $[p, p(1+\lambda)]$ et $[1-p, (1-p)(1+\lambda)]$ me paraitrait plus clair}}
+\end{Theorem}
+%When the class are balanced, the constraints on $\pi$ became $\frac{d\pi_{\textbf{x}}}{d\mu}\in [\frac{1}{2}, \frac{1}{2}+\frac{1}{2}\lambda]$, $\frac{d\pi_{{\textbf{z}}}}{d\nu}\in [\frac{1}{2}, \frac{1}{2}+\frac{1}{2}\lambda] $ \footnote {{\color{red} (Franck) utile? obvious}}
+
+
+\subsection{Classification and geometrical properties}
+\label{sec:khr_properties}
+
+\begin{figure}
+\centering
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth]{img/wass_reg_2moons_dist.png}
+  \caption{Distribution of $\hat{f}$ conditionally to the classes.}
+  \label{wass_pen:sub1}
+\end{subfigure}%
+\begin{subfigure}{.5\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth]{img/wass_reg_2moons_class.png}
+  \caption{Level map of $\hat{f}$}
+  \label{wass_pen:sub2}
+\end{subfigure}
+\caption{Hinge regularized Kantorovich-Rubinstein (hinge-KR) classification on the two moons problem}
+\label{fig:wass_pen}
+\end{figure}
+We note $\hat{f}$ the solution obtained by minimizing $\mathcal{L}^{hKR}_\lambda$ on a set of labeled examples and $f^*$ the solution of Eq.~\eqref{eq:reg_OT}. We don't assume that the solution found is optimal (i.e. $\hat{f}\neq f^*$) but we assume that $\hat{f}$ is 1-Lipschitz. Given a function $f$, a classifier based on $sign(f)$ and an example $x$, an adversarial example is defined as follows:
+\begin{equation}
+    adv(f,\textbf{x})=\underset{\textbf{z}\in \Omega | sign(f(\textbf{z}))=-sign(f(\textbf{x}))}{argmin}\parallel \textbf{x}-\textbf{z}\parallel.
+\end{equation}
+According to the 1-Lipschitz property of $\hat{f}$ we have 
+\begin{equation}
+\label{lowerbound}
+%\parallel x- adv(\hat{f},x) \parallel \geq |\hat{f}(x)|.
+|\hat{f}(\textbf{x})| \leq |\hat{f}(\textbf{x})-\hat{f}(adv(\hat{f},\textbf{x}))| \leq \parallel \textbf{x}- adv(\hat{f},\textbf{x}) \parallel.
+\end{equation}
+So $|\hat{f}(\textbf{x})|$ is a lower bound of the distance of $x$ to the separating boundary defined by $\hat{f}$ and thus a lower bound to the robustness to $l_2$ adversarial attacks. By minimizing $\mathbb{E} \left((1-\textbf{y}f(\textbf{x}))_+\right)$, we maximize the accuracy of the classifier and by maximizing the discrepancy of the image of $P_+$ and $P_-$ with respect to $f$ we maximize the robustness with respect to adversarial attack. The proposition below establishes that the gradient of the optimal function with respect to Eq.~\eqref{eq:reg_OT} has norm 1 almost surely, as for the unregularized case (Eq.~\eqref{eq:nabla_1}).
+\begin{Proposition}\label{coro_norm1}
+Let $\pi$ be the optimal measure of the dual version \eqref{eq:dual} of the hinge regularized optimal transport problem. Suppose that it is absolutely continuous with respect to Lebesgue measure. Then there exists at least a solution $f^*$ of \eqref{eq:dual} such that $||\nabla f^*||=1$ almost surely.
+\end{Proposition}
+ %Even we haven't prove it formally yet, empirical results suggest that given $\textbf{x}$, the image $tr_{f^*}(\textbf{x})$ of $\textbf{x}$ with respect to the transportation plan and $adv(\textbf{x})$ are in the same direction with respect to $x$ and this direction is $-f^*(\textbf{x})*\nabla_x f^*(\textbf{x})$ (i.e $adv(\textbf{x})\approx x-c_x*f^*(\textbf{x})*\nabla_x f^*(\textbf{x})$ and $tr_{f^*}(\textbf{x})\approx x-c'_x*f^*(\textbf{x})*\nabla_x f^*(\textbf{x})$ with $0 \leq c_x \leq c_x' \in \mathbb{R} $). This would link the adversarial attack to the optimal transport.
+Furthermore, empirical results suggest that given $\textbf{x}$, the image $tr_{f^*}(\textbf{x})$ of $\textbf{x}$ with respect to the transportation plan and $adv(\textbf{x})$ are in the same direction with respect to $\textbf{x}$ and the direction is % and 
+ $-\nabla_x f^*(\textbf{x})$. Combining this direction with the Eq.~\eqref{lowerbound}, we will show empirically (sect.~\ref{sec:experimentation}) that  $$adv(\textbf{x})\approx x-c_x*f^*(\textbf{x})*\nabla_x f^*(\textbf{x})$$ and $$tr_{f^*}(\textbf{x})\approx x-c'_x*f^*(\textbf{x})*\nabla_x f^*(\textbf{x})$$ with $1 \leq c_x \leq c_x' \in \mathbb{R} $. This provides a strong link between the adversarial attack and the optimal transport for the proposed classifier.
+ 
+ 
+The next proposition shows that, if the classes are well separated, maximizing the hinge-KR loss leads to a perfect classifier.% with no error.
+\begin{Proposition}[Separable classes]\label{coro:epsilon}
+Set  $P_+, P_-\in \mathcal{P}(\Omega)$ such that $P(Y=+1)=P(Y=-1)$ and $\lambda\geq 0$ and suppose that there exists $\epsilon>0$ such that
+\begin{align}\label{coro:hipotesis}
+	| {\textbf{x}}-{\textbf{{{\textbf{z}}}}} |> 2 \epsilon \ \ dP_+\times dP_- \text{ almost surely}
+\end{align}
+Then for each
+\begin{align}
+	f_{\lambda}\in {\arg\sup}_{f\in \text{Lip}_{1/\epsilon}(\Omega)}\int_{\Omega}f(dP_+-dP_-)-\lambda \left( \int_{\Omega}(1-f)_+dP_+ +\int_{\Omega}(1+f)_+dP_-\right),
+\end{align}
+it is satisfied that $L_1(f_{\lambda})=0.$ Furthermore if $\epsilon\geq 1$ then $f_{\lambda}$ is an optimal transport potential from $P_+$ to $P_-$ for the cost $| {\textbf{x}}-{{\textbf{z}}}|$.
+\end{Proposition}
+We show in Fig.~\ref{fig:wass_pen}, on the two moons problem, that in contrast to the vanilla classifier based on Wasserstein (Eq.~\eqref{eq:wass_vanilla_classif}), the proposed approach enables non overlapping distributions of $\hat{f}$ conditionally to the classes (Fig.~\ref{wass_pen:sub1}).
+%Figure~\ref{fig:wass_pen} illustrates the approach on the two moons problem. Contrarily to the example with Wasserstein, we observe that the distributions of $f$ conditionally to the classes doesn't overlap (Figure~\ref{wass_pen:sub1}). 
+In the same way, the 0-level cut of $\hat{f}$ (Fig.~\ref{wass_pen:sub2}) is a nearly optimal classification boundary. Moreover, the level cut of $\hat{f}$, on the support of the distributions, is close to the distance to this classification boundary.
+%, corresponds approximately to the distance to the classification boundary.  
+
+\section{1-Lipschitz neural networks}
+\label{sec:lip_const}
+In order to build a deep learning classifier based on the hinge-KR optimization problem (Eq.~\eqref{eq:reg_OT}), we have to constrain the Lipschitz constant of the neural network to be equal to 1. Even if the control of the Lipschitz constant of a neural network is a key step to guarantee some robustness \cite{cisse_parseval_2017}, it is known that evaluating it exactly is a np-hard problem~\cite{NIPS2018_7640}. The simplest strategy is to constraint each layer of the network to be 1-Lipschitz, to ensure that the Lipschitz constant of composition of the functions will be less than or equal to one. Most common activation functions such as ReLU or sigmoid are 1-Lipschitz. In the case of a dense layer, constraints can be applied to its weights. 
+The simplest strategy is to constraint the weights of each layer.  Given a dense layer with weights $W$, 
+It is commonly admitted that:
+\begin{equation}
+\label{norm_mat}
+    L(W)=||W|| \leq ||W ||_F \leq \underset{ij}{max}(|W_{ij}|)*\sqrt{nm}
+\end{equation}
+where $|| W||$ is the spectral norm, and  $|| W||_F$ is the Frobenius norm.
+The initial version of WGAN \cite{Arjovsky2017} consisted of clipping the weights of the networks. However, this is a very crude way to upper-bound Lipschitz constant (last term in Eq.~\eqref{norm_mat}).
+Normalizing by the Frobenius norm has also been proposed in~\cite{SalimansK16}. In this paper, we use spectral normalization as proposed in \cite{Miyato2018SpectralNF}, since the spectral norm is equals to the Lipschitz constant. At the inference step, we normalize the weights of each layer by dividing the weights by the spectral norm of the matrix. The spectral norm is computed by iteratively evaluating the largest singular value with the power iteration algorithm~\cite{GOLUB200035}. This is done during the forward step and taken into account for the gradient computation.\\
+
+In the case of 2D-convolutional layers, normalizing by the spectral norm of the convolution kernels is not enough and a supplementary multiplicative constant $\Lambda$ is required (the regularization is then done by dividing $W$ by $\Lambda||W||$). Given a convolutional layer with a kernel size equals to $k=2*\bar{k}+1$, the coefficient $\Lambda$ can be estimated, as in~\cite{cisse_parseval_2017}, as the square root of the maximum number of duplications of the input matrix values: since each input can be used in at most $k^2$ positions, choosing $\Lambda=k$ guarantees the convolutional layers to be 1-Lipschitz. However, due to the effect of the zero-padding, the constant $\Lambda$ is overestimated and the real Lipschitz constant is lower than 1, especially when the size of the image is small. When the convolutional network is very deep, this heavily decreases  the Lipschitz constant of the neural network. To mitigate this effect, we propose, for zero padding, a tighter estimation of $\Lambda$, computing the average duplication factor of non zero padded values in the feature map:
+\begin{equation}
+\Lambda=\sqrt{\frac{(k.w-\bar{k}.(\bar{k}+1)).(k.h-\bar{k}.(\bar{k}+1))}{h.w}}.
+\label{eq:ConvApproxLip}
+\end{equation}
+Even if this constant doesn't provide a strict upper bound of the Lipschitz constant (for instance, when the higher values are located in the center of the picture), it behaves very well empirically (see Figure \ref{fig:l2_norm_VGG_wass} for instance).
+%\footnote{{\color{red} (FRANCK:il me semble que la phrase est un peu légère, ou alors faire une ref aux experiments et la figure 3???}}. 
+Convolution with stride, pooling layers, detailed explanations and demonstrations are discussed in Appendix~\ref{sec:convStride}.\\
+
+As shown in Section~\ref{sec:khr_properties}, the optimal function $f^*$ with respect to Eq.~\eqref{eq:reg_OT}, verifies $||\nabla f^* ||=1$ almost surely.
+In \cite{gulrajani2017improved}, the authors propose to add a regularization term with respect to the average gradient norm with respect to inputs in the loss function. However, the estimation of this value is difficult and a regularization term doesn't guarantee the property. In this paper, we apply the approach described in \cite{pmlr-v97-anil19a}, based on the use of specific activation functions and a process of normalization  of the weights. Two norm preserving activation functions are proposed: i)\ \textbf{GroupSort2} : order the vector by pairs, ii) \textbf{FullSort} : order the full vector.
+These functions are vector-wise rather than element-wise. We also use the P-norm pooling \cite{boureau2010},with $P=2$ which is a norm-preserving average pooling.
+%We also propose the activation  \textbf{ConstPReLU}, a PReLU \cite{He_2015} activation function complemented by a constraint such that $|\alpha|\leq 1$ ($\alpha$ the learned slope). This last function is norm preserving only when $|\alpha|=1$ (linear, or absolute value function), but being computed element wise, it is more efficient for convolutional layers outputs.
+Concerning linear functions, a weight matrix $W$ is norm preserving if and only if all the singular values of $W$ are equals to $1$. In \cite{pmlr-v97-anil19a}, the authors propose to use the Björck orthonormalization algorithm \cite{bjorck71Ortho}. This algorithm is fully differential and, as for spectral normalization, is applied during the forward inference, and taken into account for back-propagation (see Appendix~\ref{app:normpreserving} for details). We also developed a full tensorflow~\cite{tensorflow2015-whitepaper} implementation in an opensource library, called \Deellip, that enables training of k-Lipschitz neural networks, and exporting them as standard layers for inference. 
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Experiments}
+\label{sec:experimentation}
+In the experiment, we compare three different approaches: i) classical log-entropy classifier (MLP/CNN), ii) 1-Lipschitz log-entropy classifier (1LIP-MLP/1LIP-CNN), in the spirit of Parseval networks, iii) hinge-KR classifier (hKR-MLP/hKR-CNN). In order to have a fair comparison, all the classifiers share the same dense or convolutional architecture. 
+% For the 1-Lipschitz layer we have developed the open source library DEELLIP. 
+For the 1-Lipschitz log-entropy, we perform spectral normalization within the experiments with 3 power iteration steps and we use ReLU activation (gradient preserving activations and pooling make no sense in this case and Björck orthonormalization doesn't improve the results). For the hinge-KR classifiers, we apply Björck orthonormalization (15 steps with p=1) after the spectral normalization (this improves the convergence of the Björck algorithm). We use fullsort activation for dense layers and GroupSort2 for the convolutional ones. The full description of the architecture, the optimization process, and the influence of each parameter are described in Appendix~\ref{sec:networks_architecture}. 
+
+For adversarial robustness estimation, since the hinge-KR primal problem is linked to $L_2$ distance, we focus on $L_2$ based adversarial attacks using the \textit{DeepFool} framework~\cite{moosavi-deepfool15}. For each type of Neural Network, 500 attacks are carried out on test sets (using the \textit{foolbox} library~\cite{rauber_foolbox_2018}), storing for each image the $output$ value, and the $L_2$ norm of noise  required to fool the network (up to a 50/50 score). The $output$ value is either the last dense layer output before the sigmo\"id activation for MLP/CNN and 1LIP-MLP/1LIP-CNN networks (commonly called $logit$ layer), or the last layer output for the hKR-MLP/hKR-CNN classifier. %Classically, to be compatible with \textit{foolbox}, a two outputs network is provided with $(logit,-logit)$ values.
+We consider two binary classification problems. The first one is the separation of the digits 0 and 8 on the MNIST dataset (balanced classes, 10596 training, and 1954 test samples). We choose these particular pair of digits because they are the hardest to separate. In the second problem, we consider the separation between male people with or without mustaches on the CelebA dataset \cite{liu2015faceattributes} (unbalanced classes, 11779 training ($36\%$ with mustache), 11036 test samples ($37\%$) ).
+
+
+%\subsection{Regularized optimal transport classifier accuracy and rejection rule}
+%\label{sec:hinge-KR-accuracy}
+%NDLR: voir si les expe TwoMoons doivent être mises ici ou pas 
+
+
+ Table~\ref{tab:acc_comparison} compares the classification accuracy and the adversarial robustness results for the three types of classifiers.  The drop in accuracy for the proposed solution, compared to classical networks, is less than one point even for a complex task such as celeb-A moustache classification. The last column of the table compares the average $L_2$ norm of adversarial noise for the three types of classifier. On the MNIST dataset, the improvement of robustness with 1-Lipschitz layers is significant with a clear advantage for our approach. When considering the CelebA problem, using 1-Lipschitz layers with log-entropy is not enough (the $logit$ values tend to be small). The proposed hKR approach leads to a classifier that is up to 10 times more robust than its competitors with an acceptable loss of accuracy.
+ 
+\begin{table}[]
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|}
+    \hline
+       Dataset  & \shortstack{Network \\archi}  & loss & Accuracy & \shortstack{Attack\\ Robustness}\\ \hline
+       \multirow{5}{*}{MNIST 0-8} & $MLP$  & bin\_cross. & 99.6 & 4.47 \\
+        & $1LIP-MLP$   &  bin\_cross. & 99.5 & 6.29  \\
+        & $hKR-MLP$ &  $L^{hKR}_\lambda$ ($\lambda=10$) & 99.0  & 7.19 \\
+        & $hKR-MLP$ &   $L^{hKR}_\lambda$ ($\lambda=50$) & 99.2 & \textbf{7.36}  \\\hline
+       \multirow{3}{*}{\shortstack{Celeb-A \\Moustache} }  & $CNN$ & bin\_cross. & 92.6& 0.45  \\
+       & $1LIP-CNN$  &  bin\_cross. & 92.4 & 0.27  \\
+       & $hKR-CNN$  & $L^{hKR}_\lambda$ ($\lambda=20$)  & 90.9  & \textbf{3.87 }\\\hline
+    \end{tabular}
+    \caption{Accuracy and robustness to adversarial attack (average noise $L_2$ norm) comparison}
+    \label{tab:acc_comparison}
+\end{table}
+
+%\subsection{Robustness evaluation and interpretation}
+%\label{sec:Hinge-KR-robustness}
+
+In Fig.~\ref{fig:l2norm_vs_logit}, we compare, on the MNIST 0-8 dataset, the $L_2$ norm of adversarial samples with respect to the output of the hKR neural networks (and the logit values for the 1LIP network). Figures~\ref{fig:l2norm_MLP_wass} and~\ref{fig:l2_norm_VGG_wass}  show that with our proposed learning rule, the fooling noise for a given input is linearly linked to the output (slope of one for MLP,  and around 1.1 for CNN), which confirms that the Lipschitz constants of our networks are very close to (but lower than) 1.
+We also observe that, for a given input sample, the network prediction represents a very tight lower bound of the adversarial robustness of the network for this sample. In contrast, for the 1LIP-MLP (Fig.~\ref{fig:l2_norm_MLP_lipsigmoid}), the 1-Lipschitz constraint is also guaranteed, but the output of the network can be far lower than the adversarial noise norm.%\footnote{{\color{red} (FRANCK) je ne comprend pas la phrase) MAthieu (j'avois oublié des mots :)}}
+While on some samples at the tail end of the distribution, the  $L_2$ norm of found noise can reach 30, the average adversarial robustness is lower  than for the proposed solution (green vertical lines).
+%\footnote{{\color{red} (FRANCK) j'ai changé la phrase sur les conseil de Doug pour une meilleure comprehension. A verifier}}
+%While on some samples, the  $L_2$ norm of found noise can reach 30, the average adversarial robustness is lower (green vertical lines), and high noise values are only for some points at the tail end of the distribution. 
+Beside the level of noise, Figures~\ref{fig:Deep_fool_MNIST08} empirically show that, in contrast to the other approaches, the noise required to change the output class for the hKR classifier is highly structured, and interpretable. Thus, on the MNIST 0-8 dataset, in order to fool the proposed  learned network with \textit{DeepFool}, a 0-image, for instance, is explicitly transformed into a mix between an 8 and a 0. Even for a more complex task, such as a mustache classifier on the Celeb-A dataset, Fig.~\ref{fig:Deep_fool_CelebA} shows that fooling an image of a male without (resp. with) a mustache requires to addition (resp. removal) of dark pixels around the nasolabial fold. We also build counterfactual examples (line d) by applying the scheme proposed in Section \ref{sec:khr_properties}  (i.e. $counter(\hat{f},\textbf{x})\approx x-c_x*\hat{f}(\textbf{x})*\nabla_x \hat{f}(\textbf{x})$). For each sample, we choose $c_x$ to obtain a visually satisfactory counterfactual (and not at the classification boundary as for adversarial examples). Although the differential images are not as precise as the ones obtained with adversarial approach, they clearly focus on the meaningful part of the images and provide, in our opinion, convincing counterfactual explanations. Remark that this approach is closely related to saliency map. However, the results obtained with our network are far more precise than the ones on classical networks.   %\footnote{{\color{red} (FRANCK) est ce qu'on rajoute et inversement, ou ce n'est pas assez visible? MAthieu modifié, dis moi  si c'est ok}}
+
+%[besoin de plus d'arguments+ peut etre la même chose sur CelebA]
+
+
+
+\begin{figure}
+\centering
+\begin{subfigure}{.3\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth]{img/deepfool_vs_score_DeepFool_Regularized_OT_MLP_new.png}
+  \caption{hKR-MLP}
+  \label{fig:l2norm_MLP_wass}
+\end{subfigure}%
+\begin{subfigure}{.3\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth]{img/deepfool_vs_score_DeepFool_Regularized_OT_VGG_new.png}
+  \caption{hKR-CNN}
+  \label{fig:l2_norm_VGG_wass}
+\end{subfigure}
+\begin{subfigure}{.3\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth]{img/deepfool_vs_score_DeepFool_Lipschitz_Sigmoid_new.png}
+  \caption{1LIP-CNN}
+  \label{fig:l2_norm_MLP_lipsigmoid}
+\end{subfigure}
+\caption{Comparison of $L_2$ norm of fooling noise (Y-axis) with the $output$ value (X-axis): green dots noise norm for samples (green line average value), red line:  minimal possible noise (1-lipschitz), blue histogram: $output$ (resp. $logit$ for 1LIP-CNN) distribution (blue line average value)
+}
+\label{fig:l2norm_vs_logit}
+\end{figure}
+ 
+
+\begin{figure}
+\centering
+\begin{subfigure}{1\textwidth}
+  \centering
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP128_sigmoid_ReLU_src_and_adv_22.png}
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP128_sigmoid_ReLU_src_and_adv_34.png}
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP128_sigmoid_ReLU_src_and_adv_42.png}
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP128_sigmoid_ReLU_src_and_adv_56.png}
+  \caption{MLP with sigmo\"id and binary cross entropy}
+\end{subfigure}
+\begin{subfigure}{1\textwidth}
+  \centering
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP_Lip_Sigmoid_src_and_adv_22.png}
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP_Lip_Sigmoid_src_and_adv_34.png}
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP_Lip_Sigmoid_src_and_adv_42.png}
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP_Lip_Sigmoid_src_and_adv_56.png}
+  \caption{MLP Lipschitz with sigmo\"id and binary cross entropy}
+\end{subfigure}
+\begin{subfigure}{1\textwidth}
+  \centering
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP_Bjorck_FullSort_hKR_src_and_adv_22.png}
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP_Bjorck_FullSort_hKR_src_and_adv_34.png}
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP_Bjorck_FullSort_hKR_src_and_adv_42.png}
+  \includegraphics[width=0.24\linewidth]{img/fooling/model_MLP_Bjorck_FullSort_hKR_src_and_adv_56.png}
+  \caption{MLP Lipschitz with the proposed hinge-KR loss}
+\end{subfigure}
+
+
+\caption{Deepfool adversarial examples on MNIST 0-8 dataset: source image, fooled image, differential image (yellow (resp. cyan) increase(resp. decrease) grey level)}
+\label{fig:Deep_fool_MNIST08}
+\end{figure}
+
+
+% \begin{figure}
+% \centering
+% \begin{subfigure}{1.\textwidth}
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_35_Classic.png}
+%   \label{fig:AddingMoustache_35_Classical}
+% \end{subfigure}%
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_58_Classic.png}
+%   \label{fig:AddingMoustache_58_Classical}
+% \end{subfigure}  
+% \caption{Fooling "non-moustache" images classical network}
+% \end{subfigure}  
+% \begin{subfigure}{1.\textwidth}
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_35_1LipSigmoid.png}
+%   \label{fig:AddingMoustache_35_Lip_binCross}
+% \end{subfigure}%
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_58_1LipSigmoid.png}
+%   \label{fig:AddingMoustache_58_Lip_binCross}
+% \end{subfigure}  
+% \caption{Fooling "non-moustache" images 1-lipschitz network (binary crossentropy)}
+% \end{subfigure}  
+% \begin{subfigure}{1.\textwidth}
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/AddingMoustache_1_OK.jpg}
+%   \label{fig:AddingMoustache_1_OK}
+% \end{subfigure}%
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/AddingMoustache_5_OK.jpg}
+%   \label{fig:AddingMoustache_5_OK}
+% \end{subfigure}
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/AddingMoustache_4_OK.jpg}
+%   \label{fig:AddingMoustache_3_OK}
+% \end{subfigure}%
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/AddingMoustache_218_OK.png}
+%   \label{fig:AddingMoustache_4_OK}
+% \end{subfigure}
+% \caption{Fooling "non-moustache" images with the proposed Hinge-KR classifier}
+% \end{subfigure}  
+% \begin{subfigure}{1.\textwidth}
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/RemovingMoustache_4_OK.jpg}
+%   \label{fig:RemovingMoustache_4_OK}
+% \end{subfigure}%
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/RemovingMoustache_2_OK.jpg}
+%   \label{fig:RemovingMoustache_2_OK}
+% \end{subfigure}
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/RemovingMoustache_5_OK.jpg}
+%   \label{fig:RemovingMoustache_5_OK}
+% \end{subfigure}%
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+%   \includegraphics[width=1\linewidth]{img/RemovingMoustache_1_KO.jpg}
+%   \label{fig:RemovingMoustache_1_KO}
+% \end{subfigure}
+%   \caption{Fooling "moustache" images with the proposed Hinge-KR classifier}
+% \end{subfigure}  
+% \caption{Deepfool adversarial examples  on Celeb-A dataset. Classical networks and 1-lipschitz networks learned with binary crossentropy lead to invisble noise, whereas proposed solution add or remove dark pixels around the nasolabial fold}
+% \label{fig:Deep_fool_CelebA}
+% \end{figure}
+ 
+%\begin{figure}
+%\centering
+%\begin{subfigure}{1.\textwidth}
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_35_Classic.png}
+%      \label{fig:AddingMoustache_35_Classical}
+%    \end{subfigure}%
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_58_Classic.png}
+%      \label{fig:AddingMoustache_58_Classical}
+%    \end{subfigure}  
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_54_Classic.png}
+%      \label{fig:AddingMoustache_58_Lip_binCross}
+%    \end{subfigure}  
+%    \caption{Fooling "non-moustache" images classical network}
+%\end{subfigure}  
+%\begin{subfigure}{1.\textwidth}
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_35_1LipSigmoid.png}
+%      \label{fig:AddingMoustache_35_Lip_binCross}
+%    \end{subfigure}%
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_58_1LipSigmoid.png}
+%      \label{fig:AddingMoustache_58_Lip_binCross}
+%    \end{subfigure} 
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_54_1LipSigmoid.png}
+%      \label{fig:AddingMoustache_58_Lip_binCross}
+%    \end{subfigure}  
+%    \caption{Fooling "non-moustache" images 1-lipschitz network (binary crossentropy)}
+%\end{subfigure}  
+%\begin{subfigure}{1.\textwidth}
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_35_HKR.png}
+%      \label{fig:AddingMoustache_1_OK}
+%    \end{subfigure}%
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_58_HKR.png}
+%      \label{fig:AddingMoustache_5_OK}
+%    \end{subfigure}
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_54_HKR.png}
+%      \label{fig:AddingMoustache_3_OK}
+%    \end{subfigure}%
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_218_HKR.png}
+%      \label{fig:AddingMoustache_4_OK}
+%    \end{subfigure}
+%    \caption{Fooling "non-moustache" images with the proposed Hinge-KR classifier}
+%\end{subfigure}  
+%\begin{subfigure}{1.\textwidth}
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_6008.png}
+%      \label{fig:RemovingMoustache_4_OK}
+%    \end{subfigure}%
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_1489.png}
+%      \label{fig:RemovingMoustache_2_OK}
+%    \end{subfigure}
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_6850.png}
+%      \label{fig:RemovingMoustache_5_OK}
+%    \end{subfigure}%
+%    \begin{subfigure}{.25\textwidth}
+%      \centering
+%      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_1604.png}
+%      \label{fig:RemovingMoustache_1_KO}
+%    \end{subfigure}
+%\caption{Fooling "moustache" images with the proposed Hinge-KR classifier}
+%\end{subfigure}  
+%\caption{Deepfool adversarial examples  on Celeb-A dataset. Classical networks and 1-lipschitz networks learned with binary crossentropy lead to invisble noise, whereas proposed solution add or remove dark pixels around the nasolabial fold}
+%\label{fig:Deep_fool_CelebA}
+%\end{figure}
+
+\begin{figure}
+\centering
+\begin{subfigure}{1.\textwidth}
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_52_Classic.png}
+      \label{fig:AddingMoustache_52_Classical}
+    \end{subfigure}%
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_54_Classic.png}
+      \label{fig:AddingMoustache_54_Classical}
+    \end{subfigure}  
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_1489_Classic.png}
+      \label{fig:remove_mustache_1489}
+    \end{subfigure}  
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_6850_Classic.png}
+      \label{fig:remove_mustache_6850}
+    \end{subfigure}  
+    \caption{Fooling CelebA images classical network}
+\end{subfigure}  
+
+\begin{subfigure}{1.\textwidth}
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_52_1LipSigmoid.png}
+      \label{fig:AddingMoustache_52_Lip_binCross}
+    \end{subfigure}%
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_54_1LipSigmoid.png}
+      \label{fig:AddingMoustache_54_Lip_binCross}
+    \end{subfigure} 
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_1489_1LipSigmoid.png}
+      \label{fig:remove_mustache_1489_Lip_binCross}
+    \end{subfigure}  
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_6850_1LipSigmoid.png}
+      \label{fig:remove_mustache_6850_Classic}
+    \end{subfigure}  
+    \caption{Fooling images 1-lipschitz network (binary crossentropy)}
+\end{subfigure}  
+\begin{subfigure}{1.\textwidth}
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_52_HKR.png}
+      \label{fig:AddingMoustache_1_OK}
+    \end{subfigure}%
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/AddingMoustache_54_HKR.png}
+      \label{fig:AddingMoustache_5_OK}
+    \end{subfigure}
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_1489_hKR.png}
+      \label{fig:AddingMoustache_3_OK}
+    \end{subfigure}%
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/fooling/remove_mustache_6850_hKR.png}
+      \label{fig:AddingMoustache_4_OK}
+    \end{subfigure}
+    \caption{Fooling images with the proposed hinge-KR classifier}
+\end{subfigure}  
+\begin{subfigure}{1.\textwidth}
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/adding_mustache_52_k2.png}
+      \label{fig:AddingMoustache_grad_1_OK}
+    \end{subfigure}%
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/adding_mustache_54_k4.png}
+      \label{fig:AddingMoustache_grad_5_OK}
+    \end{subfigure}
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/remove_mustache_1489_k10.png}
+      \label{fig:AddingMoustache_grad_3_OK}
+    \end{subfigure}%
+    \begin{subfigure}{.245\textwidth}
+      \centering
+      \includegraphics[width=1\linewidth]{img/remove_mustache_6950_k10.png}
+      \label{fig:AddingMoustache_grad_4_OK}
+    \end{subfigure}
+    \caption{Counterfactuals for hinge-KR classifier using gradient with resp. $c_x=2,4,10,10$}
+\end{subfigure}
+\caption{(a-c) Deepfool and adversarial examples  on Celeb-A dataset: two left (resp. right) triplet-images without (resp. with) mustache. Triplet-images consist of source image, fooled image, and differential image of V channel in HSV colorspace (yellow (resp. cyan) increase (resp. decrease) V channel level) with a common color scale for all settings. (d) counterfactuals: the last images of the triplets are $\nabla_x \hat{f}(\textbf{x})$ with the same color representation than differential images.}
+%Classical networks (1st line) and 1-lipschitz networks learned with binary crossentropy (2nd line) lead to invisble noise, whereas proposed solution (3rd line) add or remove dark pixels around the nasolabial fold}
+\label{fig:Deep_fool_CelebA}
+\end{figure}
+
+% \begin{figure}{1.\textwidth}
+%     \begin{subfigure}{.245\textwidth}
+%       \centering
+%       \includegraphics[width=1\linewidth]{img/adding_mustache_52_k2.png}
+%       \label{fig:AddingMoustache_1_OK}
+%     \end{subfigure}%
+%     \begin{subfigure}{.245\textwidth}
+%       \centering
+%       \includegraphics[width=1\linewidth]{img/adding_mustache_54_k4.png}
+%       \label{fig:AddingMoustache_5_OK}
+%     \end{subfigure}
+%     \begin{subfigure}{.245\textwidth}
+%       \centering
+%       \includegraphics[width=1\linewidth]{img/remove_mustache_1489_k9.png}
+%       \label{fig:AddingMoustache_3_OK}
+%     \end{subfigure}%
+%     \begin{subfigure}{.245\textwidth}
+%       \centering
+%       \includegraphics[width=1\linewidth]{img/remove_mustache_6950_k10.png}
+%       \label{fig:AddingMoustache_4_OK}
+%     \end{subfigure}
+%     \caption{Counterfactuals for hinge-KR classifier using gradient with resp. $c_x=2,4,9,10$}
+% \end{figure}
+
+ 
+%We claim that the output of the proposed method can be used as a confidence criteria in the decision..... %\footnote{{\color{red} TBC }}
+
+
+\section{Conclusion and future works}
+This paper presents a novel binary classification framework and the associated deep learning process. Besides the interpretation of the classification task as a regularized optimal transport problem, we demonstrate that this new formalization has some valuable properties about error bounds and robustness regarding adversarial attacks. We also propose a systematic approach to ensure the 1-Lipschitz constraint of a neural network. This includes a state-of-the-art regularization algorithm and more precise constant evaluation for convolutional and pooling layers. Even if this regularization process can increase the computation time during learning, it doesn't impact inference. We developed an open source python library based on tensorflow for 1-Lipshitz layers and gradient preserving activation and pooling functions. This makes the approach very easy to implement and to use. \\
+
+The experiment emphasizes the theoretical results and confirms that the classifier has good and predictable robustness to adversarial attack with a acceptable cost on accuracy. We also show that our classifier forces adversarial attacks to explicitly modify the input. Moreover, we show that we can easily build counterfactuals explanations. This suggest that with our novel classification problem, the adversarial attack is linked to the optimal transportation.
+
+In conclusion, we believe that this classification framework based on optimal transport is of great interest for critical problems since it provides both empirical and theoretical guarantees. Future works will focus on the multiclass counterpart of the approach and on its applicability to large and deep networks.
+
+%\if@submission \@submission false
+\acksection
+This project received funding from the French ”Investing for the Future – PIA3” program within the Artiﬁcial and Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the DEEL project\footnote{https://www.deel.ai/}.
+%\fi
+\if@submission \@submission true
+\newpage
+\section*{Broader Impact}
+Machine learning, and more precisely deep learning, is one of the rare areas of science where the adoption by the industry drives the research.  Major empirical and theoretical progress in deep learning raise unprecedented enthusiasm.  Thus, machine learning is used in more and more applications that can have a major impact on humanity such as medical and juridical applications, autonomous transportation and so on.  However, deep learning approach suffers from two major flaws in this context:  a lack of theoretical guarantee (error bounds, convergence rate…) and a structural weakness to adversarial attacks. The author’s team research areas are the certification of machine algorithms, the robustness and the explainability of neural networks. 
+We believe that the current paper may have a significant impact on both the theoretical machine learning and industrial applications. On the theoretical side, we propose a novel classification framework that establish the link between machine learning and optimal transport. We provide theoretical guarantees of existence and optimality in terms of classification.  It gives an interpretation of classification and adversarial attack in terms of optimal transport. The proposed loss function enables a tradeoff between robustness and accuracy. We prove that the output of our classifier is always a lower bound (which can be very tight) of the robustness with respect to adversarial attacks. This means that any prediction of the model comes with an interpretable robustness level.  All of these guarantees may help a lot to certify this type of approach.
+
+On the practical side, the framework requires strong constraint on neural networks. This led us to use quite uncommon neural networks layers with sorting activation functions, norm preserving pooling and orthonormalized weights. With this architecture, the theoretical requirements are fulfilled and then, the robustness lower bounds are guaranteed in practice. To make this approach accessible to researchers and industry, we propose an open source library based on Tensorflow. 
+
+Last, we empirically show that our approach is robust to adversarial attacks and that adversarial attacks explicitly build counterfactual examples. We also show that the gradient of the network's output can be used to easily obtain such counterfactuals .  This provides a simple method to explain the predictions of models learned with our framework.
+% pas sûr de la formulation: The downsides are twice
+
+The approach has two limitations. First, the energy footprint of the learning process in our approach is between two and three times larger than classical ones (however, the difference becomes negligible in inference). The second is the small decrease in terms of accuracy.
+
+In conclusion, we show that our method provides both theoretical and structural guarantees. The predictions are interpretable and associated with a robustness lower bound. We strongly believe that this kind of approach may help to guarantee the safety of deep learning algorithms, especially for critical tasks.
+\newpage
+\fi
+\bibliographystyle{plain}
+\bibliography{biblio} 
+\input{appendix.tex}
+\end{document}
