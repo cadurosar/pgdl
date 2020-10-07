@@ -163,7 +163,7 @@ def complexity(model, dataset):
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 320
     num_steps       = tf.constant(50, dtype=tf.int32)
-    step_size       = tf.constant(5e-2, dtype=tf.float32)
+    step_size       = tf.constant(2e-1, dtype=tf.float32)
     population_size = 8
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
     epsilon_mult    = 0.3
