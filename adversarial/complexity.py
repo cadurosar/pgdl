@@ -164,6 +164,7 @@ def adversarial_score(model, dataset, num_batchs_max,
     losses = tf.split(tf.stack(losses), num_or_size_splits=1)  # Median of Means
     losses = [tf.reduce_mean(loss) for loss in losses]
     losses = np.median([loss.numpy() for loss in losses])
+    radii  = 1. / tf.constant(radii)
     return float(tf.reduce_mean(losses))
 
 
@@ -192,9 +193,9 @@ def complexity(model, dataset):
     output_shape = model(dummy_input).shape
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
-    num_batchs_max  = 320
+    num_batchs_max  = 340
     num_steps       = tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
-    population_size = 4  # small pop for fast radius detection
+    population_size = 3  # small pop for fast radius detection
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
     epsilon_mult    = 0.02
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
