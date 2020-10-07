@@ -58,7 +58,8 @@ def multi_targeted(label, y):
 
 @tf.function
 def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
-    x = tf.clip_by_norm(x, epsilon, axes=x.shape[1:])  # return to epsilon ball
+    non_batch_dims = list(range(1, len(x.shape)))
+    x = tf.clip_by_norm(x, epsilon, axes=non_batch_dims)  # return to epsilon ball
     # x = tf.clip_by_value(x + x_0, inf_dataset, sup_dataset) - x_0 # return to image manifold
     return x
 
