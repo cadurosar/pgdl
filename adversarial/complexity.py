@@ -164,8 +164,9 @@ def adversarial_score(model, dataset, num_batchs_max,
     losses = tf.split(tf.stack(losses), num_or_size_splits=1)  # Median of Means
     losses = [tf.reduce_mean(loss) for loss in losses]
     losses = np.median([loss.numpy() for loss in losses])
-    radii  = 1. / tf.constant(radii)
-    return float(tf.reduce_mean(losses))
+    radii  = tf.constant(1.) / tf.constant(radii)
+    return float(tf.reduce_mean(radii))
+    # return float(tf.reduce_mean(losses))
 
 
 def complexity(model, dataset):
