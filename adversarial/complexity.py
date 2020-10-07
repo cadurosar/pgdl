@@ -57,6 +57,16 @@ def multi_targeted(label, y):
     return -tf.reduce_mean(multilabel_loss)  # minimize equally adversary classes
 
 @tf.function
+def full_loss(label, y, x, lbda, euclidian_var):
+    criterion = ce_loss(label, y)
+    if euclidian_var:
+        variance = variance_loss(x)
+    else:
+        variance = cosine_loss(x)
+    loss = criterion + lbda * variance
+    return loss
+
+@tf.function
 def projection(x, x_0, epsilon, inf_dataset, sup_dataset):
     non_batch_dims = list(range(1, len(x.shape)))
     x = tf.clip_by_norm(x, epsilon, axes=non_batch_dims)  # return to epsilon ball
@@ -75,12 +85,7 @@ def gradient_step(model, label, x_0, x,
                   inf_dataset, sup_dataset,
                   euclidian_var):
     y = model(x + x_0)
-    criterion = ce_loss(label, y)
-    if euclidian_var:
-        variance = variance_loss(x)
-    else:
-        variance = cosine_loss(x)
-    loss = criterion + lbda * variance
+    loss = full_loss(label, x, y, lbda, euclidian_var)
     g = tf.gradients(loss, [x])[0]
     x = apply_gradient(x, g, x_0, step_size, epsilon, inf_dataset, sup_dataset)
     return x, loss, criterion, variance
@@ -110,7 +115,7 @@ def projected_gradient(model, x_0, label,
         if (verbose == 1 and step+1 == num_steps) or verbose == 2:
             print(' ',end='',flush=True)
             print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-    return ce_loss(label, model(x + x_0))
+    return full_loss(label, model(x + x_0), x, lbda, euclidian_var)
 
 
 def adversarial_score(model, dataset, num_batchs_max,
@@ -125,7 +130,7 @@ def adversarial_score(model, dataset, num_batchs_max,
                                      lbda, epsilon, inf_dataset, sup_dataset,
                                      euclidian_var, verbose)
         losses.append(pg_loss)
-    losses = tf.split(tf.stack(losses), num_or_size_splits=1)
+    losses = tf.split(tf.stack(losses), num_or_size_splits=5)  # Median of Means
     losses = [tf.reduce_mean(loss) for loss in losses]
     losses = np.median([loss.numpy() for loss in losses])
     return float(tf.reduce_mean(losses))
