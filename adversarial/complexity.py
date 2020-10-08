@@ -250,7 +250,7 @@ def complexity(model, dataset):
     output_shape = model(dummy_input).shape
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
-    num_batchs_max  = 1024  # runtime ok when radii_only = True
+    num_batchs_max  = 768  # runtime ok when radii_only = True
     num_steps_explore= tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
     num_steps_exploit= tf.constant(18, dtype=tf.int32)
     explore_pop_size= 4   # small pop for fast radius detection
