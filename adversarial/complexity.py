@@ -185,9 +185,11 @@ def find_pop_adv(model, x_0, label,
         if criterion > tol_out * sup_ce:
             criterion = sup_ce  # task considered successful
             break
+    y = model(x + x_0)
+    loss, criterion, variance = full_loss(label, y, x, lbda, euclidian_var)
     if verbose == 1:
         print(f'[OUT] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-    return criterion + variance  # penalty for unspread distributions
+    return loss  # criterion+variance both taken into account
 
 
 def adversarial_score(model, dataset, num_batchs_max,
