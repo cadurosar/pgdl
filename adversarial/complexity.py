@@ -107,10 +107,10 @@ def dilate(x, epsilon, step_size, dilatation_rate):
     step_size       = step_size * dilatation_rate
     return x, epsilon, step_size
 
-def projected_gradient(model, x_0, label,
-                       num_steps, step_size, population_size,
-                       lbda, epsilon, length_unit, sup_ce, dataset_bounds,
-                       dilatation_rate, euclidian_var, momentum, verbose):
+def find_radius(model, x_0, label,
+                num_steps, step_size, population_size,
+                lbda, epsilon, length_unit, sup_ce, dataset_bounds,
+                dilatation_rate, euclidian_var, momentum, verbose):
     ball_l_inf = epsilon / length_unit
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x = projection(x, x_0, epsilon, dataset_bounds)
@@ -144,8 +144,20 @@ def projected_gradient(model, x_0, label,
             break  # gain precious computation time
     if verbose == 1:
         print(f'Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-    return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
+    return epsilon
+    # return full_loss(label, model(x + x_0), x, lbda, euclidian_var), epsilon
 
+def median_of_means(datas, num_splits):
+    datas = tf.split(datas, num_or_size_splits=num_splits)  # Median of Means
+    datas = [tf.reduce_mean(data) for data in datas]
+    datas = np.median([data.numpy() for data in datas])
+    return datas
+
+def find_pop_adv(model, x_0, label,
+                 num_steps, step_size, population_size,
+                 lbda, epsilon, length_unit, sup_ce, dataset_bounds,
+                 euclidian_var, momentum, verbose):
+    return 42.  # lol
 
 def adversarial_score(model, dataset, num_batchs_max,
                       num_steps, step_size, population_size,
@@ -154,20 +166,20 @@ def adversarial_score(model, dataset, num_batchs_max,
     losses, radii = [], []
     for (x, label), _ in zip(dataset, progress_bar(num_batchs_max)):
         # print('Sizes: ', tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
-        pg_results = projected_gradient(model, x, label,
-                                        num_steps, step_size, population_size,
-                                        lbda, epsilon, length_unit, sup_ce, dataset_bounds,
-                                        dilatation_rate, euclidian_var, momentum, verbose)
-        pg_loss, last_radius = pg_results
+        radius = find_radius(model, x, label,
+                             num_steps, step_size, population_size,
+                             lbda, epsilon, length_unit, sup_ce, dataset_bounds,
+                             dilatation_rate, euclidian_var, momentum, verbose)
+        radii.append(radius)
+        pg_loss = find_pop_adv(model, x_0, label,
+                               num_steps, step_size, population_size,
+                               lbda, epsilon, length_unit, sup_ce, dataset_bounds,
+                               euclidian_var, momentum, verbose)
         losses.append(pg_loss)
-        radii.append(last_radius)
-    losses = tf.split(tf.stack(losses), num_or_size_splits=1)  # Median of Means
-    losses = [tf.reduce_mean(loss) for loss in losses]
-    losses = np.median([loss.numpy() for loss in losses])
+    losses = tf.stack(losses)
     radii  = tf.constant(1.) / tf.stack(radii)
-    return float(tf.reduce_mean(radii))
-    # return float(tf.reduce_mean(losses))
-
+    return radii
+    # return tf.reduce_mean(losses * radii)  # dot product for expectation
 
 def complexity(model, dataset):
     """Return complexity w.r.t a model and a dataset.
