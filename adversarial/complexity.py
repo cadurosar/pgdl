@@ -167,6 +167,7 @@ def find_pop_adv(model, x_0, label,
     tol_out       = tf.constant(0.80)  # once than more than 80% of individuals have saturated, it is validated
     tol_lr        = tf.constant(0.10)  # at least 10% increase otherwise bigger learning rate
     patience      = 2                  # patience before increasing LR
+    step_size_mult = tf.constant(4.)
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
     if verbose:
         print(f'Scan ball with optimal radius {epsilon:.3f}')
@@ -182,13 +183,13 @@ def find_pop_adv(model, x_0, label,
             last_plateau = step
         last_criterion = criterion
         if step >= last_plateau+patience:
-            step_size = step_size * tf.constant(2.)
+            step_size = step_size * step_size_mult
         if criterion > tol_out * sup_ce:
             criterion = sup_ce  # task considered successful
             break
     if verbose == 1:
         print(f'[OUT] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-    return criterion
+    return criterion + variance  # penalty for unspread distributions
 
 
 def adversarial_score(model, dataset, num_batchs_max,
