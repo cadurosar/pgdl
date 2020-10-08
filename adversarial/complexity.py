@@ -120,7 +120,8 @@ def find_radius(model, x_0, label,
     old_g = tf.constant(0.)  # gradient momentum, dangerous outside stochastic regime
     if verbose:
         print(' ',end='',flush=True)
-        print(f'Start with radius {epsilon:.3f}')
+        if verbose == 2:
+            print(f'Start with radius {epsilon:.3f}')
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x, old_g,
                                    step_size, epsilon, lbda,
@@ -135,7 +136,7 @@ def find_radius(model, x_0, label,
         if step >= last_plateau+patience:
             x, epsilon, step_size = dilate(x, epsilon, step_size, dilatation_rate)
             x = projection(x, x_0, epsilon, dataset_bounds)
-            if verbose:
+            if verbose == 2:
                 print(f'Restart with radius {epsilon:.3f}')
             last_plateau    = step
             last_criterion  = tf.constant(-math.inf)
@@ -253,7 +254,7 @@ def complexity(model, dataset):
     dilatation_rate = tf.constant(2.)
     momentum        = False
     radii_only      = False
-    verbose         = 2
+    verbose         = 1
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, num_steps_exploit, step_size,
                                  explore_pop_size, exploit_pop_size,
