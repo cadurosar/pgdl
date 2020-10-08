@@ -118,7 +118,7 @@ def find_radius(model, x_0, label,
     patience      = 3  # after 3 unsuccessful steps, increase radius  
     tol_plateau   = 0.03  # at least 3% improvement (8 steps required to trigger detection)
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
-    old_g = tf.constant(0.)  # gradient momentum, dangerous outside stochastic regime
+    old_g         = tf.constant(0.)  # gradient momentum, dangerous outside stochastic regime
     if verbose:
         print(' ',end='',flush=True)
         if verbose == 2:
@@ -142,19 +142,18 @@ def find_radius(model, x_0, label,
             last_plateau    = step
             last_criterion  = tf.constant(-math.inf)
             old_g           = tf.constant(0.)
+            restarted       += 1
         if last_criterion >= tol_out * sup_ce:  # optimal epsilon have been found
             break  # gain precious computation time
     if verbose == 1:
         print(f'[OUT] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
     return epsilon
 
-
 def median_of_means(datas, num_splits):
     datas = tf.split(datas, num_or_size_splits=num_splits)  # Median of Means
     datas = [tf.reduce_mean(data) for data in datas]
     datas = np.median([data.numpy() for data in datas])
     return datas
-
 
 def find_pop_adv(model, x_0, label,
                  num_steps, step_size, population_size,
@@ -248,7 +247,7 @@ def complexity(model, dataset):
     output_shape = model(dummy_input).shape
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
-    num_batchs_max  = 1024  # runtime ok when radii_only = True
+    num_batchs_max  = 384  # runtime ok when radii_only = True
     num_steps_explore= tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
     num_steps_exploit= tf.constant(18, dtype=tf.int32)
     explore_pop_size= 4   # small pop for fast radius detection
@@ -266,8 +265,8 @@ def complexity(model, dataset):
     sup_dataset     = tf.constant( math.inf, dtype=tf.float32)
     dilatation_rate = tf.constant(2.)
     momentum        = False
-    radii_only      = True
-    verbose         = 0
+    radii_only      = False
+    verbose         = 2
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, num_steps_exploit, step_size,
                                  explore_pop_size, exploit_pop_size,
