@@ -194,7 +194,7 @@ def adversarial_score(model, dataset, num_batchs_max,
         if not radii_only:
             pg_loss = find_pop_adv(model, x_0, label,
                                    num_steps_exploit, step_size, exploit_pop_size,
-                                   lbda, radii, length_unit, sup_ce, dataset_bounds,
+                                   lbda, radius, length_unit, sup_ce, dataset_bounds,
                                    euclidian_var, momentum, verbose)
             losses.append(pg_loss)
     radii  = tf.constant(1.) / tf.stack(radii)
