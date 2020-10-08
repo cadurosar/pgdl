@@ -147,11 +147,13 @@ def find_radius(model, x_0, label,
         print(f'[OUT] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
     return epsilon
 
+
 def median_of_means(datas, num_splits):
     datas = tf.split(datas, num_or_size_splits=num_splits)  # Median of Means
     datas = [tf.reduce_mean(data) for data in datas]
     datas = np.median([data.numpy() for data in datas])
     return datas
+
 
 def find_pop_adv(model, x_0, label,
                  num_steps, step_size, population_size,
@@ -161,7 +163,10 @@ def find_pop_adv(model, x_0, label,
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x             = projection(x, x_0, epsilon, dataset_bounds)
     old_g         = tf.constant(0.)
-    tol_out       = 0.80  # once than more than 90% of individuals have saturated, it is validated
+    tol_out       = 0.80  # once than more than 80% of individuals have saturated, it is validated
+    tol_lr        = 0.10  # at least 10% increase otherwise bigger learning rate
+    patience      = 3     # patience before increasing LR
+    last_plateau, last_criterion = 0, tf.constant(-math.inf)
     if verbose:
         print(f'Scan ball with optimal radius {epsilon:.3f}')
     for step in range(num_steps):
@@ -172,6 +177,11 @@ def find_pop_adv(model, x_0, label,
         x, loss, criterion, variance, old_g = step_infos
         if verbose == 2:
             print(f'[{step+1}] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
+        if criterion - last_criterion >= tol_lr * sup_ce:
+            last_plateau = step
+        last_criterion = criterion
+        if step >= last_plateau+patience:
+            step_size = step_size * tf.constant(2.)
         if criterion > tol_out * sup_ce:
             criterion = sup_ce  # task considered successful
     if verbose == 1:
@@ -237,7 +247,7 @@ def complexity(model, dataset):
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
     num_batchs_max  = 340
     num_steps_explore= tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
-    num_steps_exploit= tf.constant(9, dtype=tf.int32)
+    num_steps_exploit= tf.constant(18, dtype=tf.int32)
     explore_pop_size= 4   # small pop for fast radius detection
     exploit_pop_size= 12  # three times bigger => at most 9 steps
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
@@ -254,7 +264,7 @@ def complexity(model, dataset):
     dilatation_rate = tf.constant(2.)
     momentum        = False
     radii_only      = False
-    verbose         = 1
+    verbose         = 2
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, num_steps_exploit, step_size,
                                  explore_pop_size, exploit_pop_size,
