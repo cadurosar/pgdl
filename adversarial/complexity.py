@@ -165,7 +165,7 @@ def find_pop_adv(model, x_0, label,
     tol_out       = tf.constant(0.90)  # once than more than 80% of individuals have saturated, it is validated
     tol_lr        = tf.constant(0.10)  # at least 10% increase otherwise bigger learning rate
     step_size_mult = tf.constant(1.5)
-    last_criterion = 0, tf.constant(-math.inf)
+    last_criterion = tf.constant(-math.inf)
     if verbose:
         print(f'Scan ball with optimal radius {epsilon:.3f}')
     best_loss = tf.constant(-math.inf)
