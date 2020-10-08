@@ -164,9 +164,8 @@ def find_pop_adv(model, x_0, label,
     old_g         = tf.constant(0.)
     tol_out       = tf.constant(0.90)  # once than more than 80% of individuals have saturated, it is validated
     tol_lr        = tf.constant(0.10)  # at least 10% increase otherwise bigger learning rate
-    patience      = 2                  # patience before increasing LR
     step_size_mult = tf.constant(1.5)
-    last_plateau, last_criterion = 0, tf.constant(-math.inf)
+    last_criterion = 0, tf.constant(-math.inf)
     if verbose:
         print(f'Scan ball with optimal radius {epsilon:.3f}')
     best_loss = tf.constant(-math.inf)
@@ -178,15 +177,15 @@ def find_pop_adv(model, x_0, label,
         x, loss, criterion, variance, old_g = step_infos
         if verbose == 2:
             print(f'[{step+1}] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-        if criterion - last_criterion >= tol_lr * sup_ce:
-            last_plateau = step
-        last_criterion = criterion
         best_loss = tf.maximum(best_loss, loss)
-        if step >= last_plateau+patience:
+        if last_criterion - criterion > tol_lr * sup_ce:  # LR too big
+            step_size = step_size / step_size_mult
+        elif criterion - last_criterion < tol_lr * sup_ce:  # LR too small
             step_size = step_size * step_size_mult
         if criterion > tol_out * sup_ce:
             criterion = sup_ce  # task considered successful
             break
+        last_criterion = criterion
     y = model(x + x_0)
     loss, criterion, variance = full_loss(label, y, x, lbda, euclidian_var)
     best_loss = tf.maximum(best_loss, loss)
