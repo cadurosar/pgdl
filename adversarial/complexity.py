@@ -164,11 +164,12 @@ def find_pop_adv(model, x_0, label,
     old_g         = tf.constant(0.)
     tol_out       = tf.constant(0.90)  # once than more than 80% of individuals have saturated, it is validated
     tol_lr        = tf.constant(0.10)  # at least 10% increase otherwise bigger learning rate
-    patience      = 4                  # patience before increasing LR
-    step_size_mult = tf.constant(5.)
+    patience      = 2                  # patience before increasing LR
+    step_size_mult = tf.constant(1.5)
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
     if verbose:
         print(f'Scan ball with optimal radius {epsilon:.3f}')
+    best_loss = tf.constant(-math.inf)
     for step in range(num_steps):
         step_infos = gradient_step(model, label, x_0, x, old_g,
                                    step_size, epsilon, lbda,
@@ -180,6 +181,7 @@ def find_pop_adv(model, x_0, label,
         if criterion - last_criterion >= tol_lr * sup_ce:
             last_plateau = step
         last_criterion = criterion
+        best_loss = tf.maximum(best_loss, loss)
         if step >= last_plateau+patience:
             step_size = step_size * step_size_mult
         if criterion > tol_out * sup_ce:
@@ -187,9 +189,10 @@ def find_pop_adv(model, x_0, label,
             break
     y = model(x + x_0)
     loss, criterion, variance = full_loss(label, y, x, lbda, euclidian_var)
+    best_loss = tf.maximum(best_loss, loss)
     if verbose == 1:
         print(f'[OUT] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-    return loss  # criterion+variance both taken into account
+    return best_loss  # criterion+variance both taken into account
 
 
 def adversarial_score(model, dataset, num_batchs_max,
