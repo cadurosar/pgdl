@@ -111,11 +111,12 @@ def find_radius(model, x_0, label,
                 num_steps, step_size, population_size,
                 lbda, epsilon, length_unit, sup_ce, dataset_bounds,
                 dilatation_rate, euclidian_var, momentum, verbose):
-    ball_l_inf = epsilon / length_unit
+    ball_l_inf    = epsilon / length_unit
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
-    x = projection(x, x_0, epsilon, dataset_bounds)
-    tol_out = 0.24  # at least 24% for fast detection of successful candidates
-    patience, tol_plateau = 3, 0.03  # at least 3% improvement (8 steps required to trigger detection)
+    x             = projection(x, x_0, epsilon, dataset_bounds)
+    tol_out       = tf.constant(0.24)  # at least 24% for fast detection of successful candidates
+    patience      = 3  # after 3 unsuccessful steps, increase radius  
+    tol_plateau   = 0.03  # at least 3% improvement (8 steps required to trigger detection)
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
     old_g = tf.constant(0.)  # gradient momentum, dangerous outside stochastic regime
     if verbose:
@@ -163,9 +164,9 @@ def find_pop_adv(model, x_0, label,
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x             = projection(x, x_0, epsilon, dataset_bounds)
     old_g         = tf.constant(0.)
-    tol_out       = 0.80  # once than more than 80% of individuals have saturated, it is validated
-    tol_lr        = 0.10  # at least 10% increase otherwise bigger learning rate
-    patience      = 3     # patience before increasing LR
+    tol_out       = tf.constant(0.80)  # once than more than 80% of individuals have saturated, it is validated
+    tol_lr        = tf.constant(0.10)  # at least 10% increase otherwise bigger learning rate
+    patience      = 2                  # patience before increasing LR
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
     if verbose:
         print(f'Scan ball with optimal radius {epsilon:.3f}')
@@ -184,6 +185,7 @@ def find_pop_adv(model, x_0, label,
             step_size = step_size * tf.constant(2.)
         if criterion > tol_out * sup_ce:
             criterion = sup_ce  # task considered successful
+            break
     if verbose == 1:
         print(f'[OUT] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
     return criterion
