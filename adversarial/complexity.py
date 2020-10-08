@@ -164,9 +164,9 @@ def adversarial_score(model, dataset, num_batchs_max,
                       lbda, epsilon, length_unit, sup_ce, dataset_bounds,
                       dilatation_rate, euclidian_var, momentum, verbose):
     losses, radii = [], []
-    for (x, label), _ in zip(dataset, progress_bar(num_batchs_max)):
+    for (x_0, label), _ in zip(dataset, progress_bar(num_batchs_max)):
         # print('Sizes: ', tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
-        radius = find_radius(model, x, label,
+        radius = find_radius(model, x_0, label,
                              num_steps, step_size, population_size,
                              lbda, epsilon, length_unit, sup_ce, dataset_bounds,
                              dilatation_rate, euclidian_var, momentum, verbose)
