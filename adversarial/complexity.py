@@ -269,7 +269,7 @@ def complexity(model, dataset):
     dilatation_rate = tf.constant(2.)
     momentum        = False
     radii_only      = False
-    verbose         = 2
+    verbose         = 0
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, num_steps_exploit, step_size,
                                  explore_pop_size, exploit_pop_size,
