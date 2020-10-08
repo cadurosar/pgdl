@@ -178,7 +178,7 @@ def adversarial_score(model, dataset, num_batchs_max,
         losses.append(pg_loss)
     losses = tf.stack(losses)
     radii  = tf.constant(1.) / tf.stack(radii)
-    return radii
+    return float(tf.reduce_mean(radii))
     # return tf.reduce_mean(losses * radii)  # dot product for expectation
 
 def complexity(model, dataset):
