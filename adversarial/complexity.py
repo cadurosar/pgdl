@@ -142,7 +142,6 @@ def find_radius(model, x_0, label,
             last_plateau    = step
             last_criterion  = tf.constant(-math.inf)
             old_g           = tf.constant(0.)
-            restarted       += 1
         if last_criterion >= tol_out * sup_ce:  # optimal epsilon have been found
             break  # gain precious computation time
     if verbose == 1:
