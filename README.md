@@ -56,7 +56,8 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |  MIXUP Smoothness Last (Binary 100 500-graphs-k=1) |  16.04  |   7.29  |     3.12     |      28.97    |      9.34      |      5.37      |
 |  MIXUP Smoothness Penultimate (Binary 100 500-graphs-k=1 normalized) |  11.17  |   13.04  |     4.80     |      17.54    |      15.42      |      10.66      |
 |      Catastrophic Forgetting Measure      |        |   0.68  |              |               |      0.61      |      0.74      |
-|            Adversarial Radii              |  16.37 |   9.26  |     15.63    |     17.11     |      17.61     |      0.92      |       
+|            Adversarial Radii              |  16.37 |   9.26  |     15.63    |     17.11     |      17.61     |      0.92      |
+|         Big Adversarial Radii             |  17.80 |   8.26  |     16.31    |     19.28     |      15.82     |      0.71      |   
 
 # Time spent on the public set/private set
 
@@ -78,3 +79,4 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |  MIXUP Smoothness Penultimate (Binary 100 500-graphs-k=1 normalized) |   468        |   109         |      142       |       100      |
 |       Catastrophic Forgetting Measure     |              |               |       223      |       142      |
 |            Adversarial Radii              |      54      |       32      |       43       |       38       |
+|         Big Adversarial Radii             |      138     |       75      |                |                |

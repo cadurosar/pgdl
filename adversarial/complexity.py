@@ -25,8 +25,9 @@ def variance_loss(x):
 
 @tf.function
 def cosine_loss(x):
-    x = tf.nn.avg_pool2d(x, ksize=[9, 9], strides=[5, 5],  # ensure that different regions are targeted
-                         padding='SAME', data_format='NHWC')
+    if len(x.shape) == 4:  # is an image with proper channels, otherwise regularization less effective
+        x = tf.nn.avg_pool2d(x, ksize=[9, 9], strides=[5, 5],  # ensure that different regions are targeted
+                             padding='SAME', data_format='NHWC')
     non_batch_dims_norm = list(range(1, len(x.shape)))
     x_norm          = tf.reduce_sum(x ** 2, axis=non_batch_dims_norm)
     x_norm_left     = tf.expand_dims(x_norm, axis=1)
@@ -250,7 +251,7 @@ def complexity(model, dataset):
     output_shape = model(dummy_input).shape
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
-    num_batchs_max  = 768  # runtime ok when radii_only = True
+    num_batchs_max  = 384  # runtime ok when radii_only = True
     num_steps_explore= tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
     num_steps_exploit= tf.constant(18, dtype=tf.int32)
     explore_pop_size= 4   # small pop for fast radius detection
@@ -268,7 +269,7 @@ def complexity(model, dataset):
     sup_dataset     = tf.constant( math.inf, dtype=tf.float32)
     dilatation_rate = tf.constant(2.)
     momentum        = False
-    radii_only      = True
+    radii_only      = False
     verbose         = 0
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, num_steps_exploit, step_size,
