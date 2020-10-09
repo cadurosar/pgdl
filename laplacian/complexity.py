@@ -49,7 +49,7 @@ def complexity(model, dataset):
     dataset = raw_batchs(dataset, batch_size)
     for (x, label), _ in zip(dataset, progress_bar(num_batchs_max)):
         flatten_x = tf.keras.backend.flatten(x)
-        measure = get_laplacien(flatten_x, label, batch_size, batched_image_shape)
+        measure = get_laplacian(flatten_x, label, batch_size, batched_image_shape)
         measures.append(measure)
     return float(tf.reduce_mean(measures))
 
