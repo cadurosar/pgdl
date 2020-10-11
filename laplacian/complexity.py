@@ -58,8 +58,6 @@ def hutchinson_trick(model, x, label, batch_size, monte_carlo_samples, unbatched
         Hv = acc.jvp(backward)
         laplacian = tf.reduce_sum(v * Hv)
         laplacians.append(laplacian)
-    print('')
-    print(tf.reduce_mean(laplacians), tf.math.reduce_std(laplacians))
     return tf.reduce_mean(laplacians)
 
 
@@ -70,7 +68,7 @@ def complexity(model, dataset):
     monte_carlo_samples = 32
     unbatched_image_shape = tuple(dummy_input.shape[1:])
     batched_image_shape = (batch_size,) + unbatched_image_shape
-    num_examples = 512
+    num_examples = 256
     num_batchs_max = num_examples // batch_size
     measures = []
     dataset = raw_batchs(dataset, batch_size)
