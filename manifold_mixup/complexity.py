@@ -40,8 +40,8 @@ def evaluate_lip(model, x, labels, softmax):
     lips = tf.math.reduce_mean(grad_penalty)
     return lips
 
-def lipschitz_score(model, dataset, num_batchs_max, softmax):
-    dataset = raw_batchs(dataset)
+def lipschitz_score(model, dataset, batch_size, num_batchs_max, softmax):
+    dataset = raw_batchs(dataset, batch_size)
     scores = []
     progress = progress_bar(num_batchs_max)
     for (x, labels), _ in zip(dataset, progress):
@@ -114,8 +114,9 @@ def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
 def complexity(model, dataset):
     # model.summary()
     public_data = False
-    num_batchs_max = 2048
-    avg_loss = lipschitz_score(model, dataset, num_batchs_max, softmax=True)
+    num_batchs_max = 1500
+    batch_size = 32
+    avg_loss = lipschitz_score(model, dataset, batch_size, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
     # avg_loss = catastrophic(model, dataset, num_batchs_witness=num_batchs_max, num_dumb_batchs=4)
     # avg_loss = graph_lip(model, dataset, num_batchs_max, almost_k_regular=8, layer_cut=-1, input_mixup=False)
