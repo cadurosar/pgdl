@@ -114,7 +114,7 @@ def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
 def complexity(model, dataset):
     # model.summary()
     public_data = False
-    num_batchs_max = 1500
+    num_batchs_max = 320
     batch_size = 32
     avg_loss = lipschitz_score(model, dataset, batch_size, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
