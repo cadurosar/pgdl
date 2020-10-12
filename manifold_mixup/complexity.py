@@ -18,13 +18,6 @@ from utils import *
 #######################################################################
 
 @tf.function
-def penalty(batch_squared_norm, one_lipschitz):
-    batch_norm = tf.math.sqrt(batch_squared_norm)
-    if one_lipschitz:
-        return (batch_norm - 1.0) ** 2
-    return batch_norm
-
-@tf.function
 def evaluate_lip(model, x, labels, softmax):
     with tf.GradientTape(watch_accessed_variables=False) as tape:
         tape.watch(x)
@@ -36,7 +29,7 @@ def evaluate_lip(model, x, labels, softmax):
             y = tf.nn.softmax_cross_entropy_with_logits(label, y)
     dy_dx = tape.batch_jacobian(y, x)
     batch_squared_norm = tf.math.reduce_sum(dy_dx ** 2, axis=list(range(1,len(dy_dx.shape))))
-    grad_penalty = penalty(batch_squared_norm, one_lipschitz=False)
+    grad_penalty = batch_squared_norm
     lips = tf.math.reduce_mean(grad_penalty)
     return lips
 
