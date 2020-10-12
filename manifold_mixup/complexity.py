@@ -31,21 +31,12 @@ def evaluate_lip(model, x, labels, softmax):
         y = model(x)
         if softmax:
             y = tf.nn.softmax(y)
-        y = tf.gather(y, indices=labels, axis=1)  # axis=0 is batch dimension, axis=1 is logits
-    dy_dx = tape.gradient(y, x)
+            y = tf.gather(y, indices=labels, axis=1)  # axis=0 is batch dimension, axis=1 is logits
+        else:
+            y = tf.nn.softmax_cross_entropy_with_logits(label, y)
+    dy_dx = tape.batch_jacobian(y, x)
     batch_squared_norm = tf.math.reduce_sum(dy_dx ** 2, axis=list(range(1,len(dy_dx.shape))))
-    grad_penalty = penalty(batch_squared_norm, one_lipschitz=True)
-    lips = tf.math.reduce_mean(grad_penalty)
-    return lips
-
-@tf.function
-def jacob_lip(model, x):
-    with tf.GradientTape(watch_accessed_variables=False) as tape:
-        tape.watch(x)
-        y = model(x)
-    dy_dx = tape.gradient(y, x)
-    batch_squared_norm = tf.math.reduce_sum(dy_dx ** 2, axis=list(range(1,len(dy_dx.shape))))
-    grad_penalty = penalty(batch_squared_norm, one_lipschitz=True)
+    grad_penalty = penalty(batch_squared_norm, one_lipschitz=False)
     lips = tf.math.reduce_mean(grad_penalty)
     return lips
 
@@ -124,9 +115,9 @@ def complexity(model, dataset):
     # model.summary()
     public_data = False
     num_batchs_max = 2048
-    # avg_loss = lipschitz_score(model, dataset, num_batchs_max, softmax=True)
+    avg_loss = lipschitz_score(model, dataset, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
     # avg_loss = catastrophic(model, dataset, num_batchs_witness=num_batchs_max, num_dumb_batchs=4)
     # avg_loss = graph_lip(model, dataset, num_batchs_max, almost_k_regular=8, layer_cut=-1, input_mixup=False)
-    avg_loss = mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon=16)
+    # avg_loss = mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon=16)
     return avg_loss
