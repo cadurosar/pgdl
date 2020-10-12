@@ -199,10 +199,13 @@ def adversarial_score(model, dataset, num_batchs_max,
                       num_steps_explore, num_steps_exploit, step_size,
                       explore_pop_size, exploit_pop_size,
                       lbda, epsilon, length_unit, sup_ce, dataset_bounds,
-                      dilatation_rate, euclidian_var, momentum, radii_only, verbose):
+                      dilatation_rate, euclidian_var, momentum, radii_only, acc_gap,
+                      verbose):
     losses, radii = [], []
     for (x_0, label), _ in zip(dataset, progress_bar(num_batchs_max)):
         # print('Sizes: ', tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
+        if acc_gap:
+            label = tf.math.argmax(model(x_0), axis=-1, output_type=label.dtype)
         radius = find_radius(model, x_0, label,
                              num_steps_explore, step_size, explore_pop_size,
                              lbda, epsilon, length_unit, sup_ce, dataset_bounds,
@@ -270,6 +273,7 @@ def complexity(model, dataset):
     dilatation_rate = tf.constant(2.)
     momentum        = False
     radii_only      = False
+    acc_gap         = False
     verbose         = 0
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, num_steps_exploit, step_size,
@@ -277,7 +281,7 @@ def complexity(model, dataset):
                                  lbda, epsilon, length_unit, sup_ce,
                                  (inf_dataset, sup_dataset),
                                  dilatation_rate, euclidian_var,
-                                 momentum, radii_only, verbose)
+                                 momentum, radii_only, acc_gap, verbose)
     return avg_loss
 
 

@@ -58,7 +58,8 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |      Catastrophic Forgetting Measure      |        |   0.68  |              |               |      0.61      |      0.74      |
 |            Adversarial Radii              |  16.37 |   9.26  |     15.63    |     17.11     |      17.61     |      0.92      |
 |         Big Adversarial Radii             |  17.80 |   8.26  |     16.31    |     19.28     |      15.82     |      0.71      |
-|         Weighted Inverse Radii            |  13.99 |         |     12.84    |     15.14     |                |                |  
+|         Weighted Inverse Radii            |  13.99 |         |     12.84    |     15.14     |                |                |
+|               Laplacian                   |  10.49 |   5.88  |     08.14    |     12.83     |      10.86     |      0.89      |
 
 # Time spent on the public set/private set
 
