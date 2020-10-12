@@ -115,7 +115,7 @@ def complexity(model, dataset):
     # model.summary()
     public_data = False
     num_batchs_max = 320
-    batch_size = 32
+    batch_size = 16
     avg_loss = lipschitz_score(model, dataset, batch_size, num_batchs_max, softmax=True)
     # avg_loss = mixup_score(model, dataset, num_batchs_max, mix_policy='input')
     # avg_loss = catastrophic(model, dataset, num_batchs_witness=num_batchs_max, num_dumb_batchs=4)
