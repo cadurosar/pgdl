@@ -58,8 +58,9 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |      Catastrophic Forgetting Measure      |        |   0.68  |              |               |      0.61      |      0.74      |
 |            Adversarial Radii              |  16.37 |   9.26  |     15.63    |     17.11     |      17.61     |      0.92      |
 |         Big Adversarial Radii             |  17.80 |   8.26  |     16.31    |     19.28     |      15.82     |      0.71      |
-|         Weighted Inverse Radii            |  13.99 |   3.26  |     12.84    |     15.14     |       5.35     |      1.18      |  
+|         Weighted Inverse Radii            |  13.99 |   3.26  |     12.84    |     15.14     |      05.35     |      1.18      |  
 |               Laplacian                   |  10.49 |   5.88  |     08.14    |     12.83     |      10.86     |      0.89      |
+|             Norm Gradient                 |  06.16 |   5.32  |     04.17    |     08.15     |      02.48     |      8.16      |
 
 # Time spent on the public set/private set
 
@@ -84,3 +85,4 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |         Big Adversarial Radii             |      138     |       75      |       89       |       77       |
 |        Weighted Inverse Radii             |      117     |       44      |       192      |       152      |
 |                Laplacian                  |      152     |       108     |       230      |       135      |
+|               Norm Gradient               |      32      |        20     |       151      |        96      |

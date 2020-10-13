@@ -58,13 +58,14 @@ def hutchinson_trick(model, x, label, batch_size, monte_carlo_samples, unbatched
         Hv = acc.jvp(backward)
         laplacian = tf.reduce_sum(v * Hv)
         laplacians.append(laplacian)
+    print(tf.reduce_mean(laplacians), tf.math.reduce_std(laplacians))
     return tf.reduce_mean(laplacians)
 
 
 def complexity(model, dataset):
     dummy_input = next(dataset.take(1).batch(1).__iter__())[0]  # warning: one image disappears
-    batch_size = 8
-    method = 'jacob'
+    batch_size = 1  # 8 works
+    method = 'jacob_hutchinson_hessian'
     monte_carlo_samples = 32
     unbatched_image_shape = tuple(dummy_input.shape[1:])
     batched_image_shape = (batch_size,) + unbatched_image_shape
@@ -74,12 +75,15 @@ def complexity(model, dataset):
     dataset = raw_batchs(dataset, batch_size)
     progress = tqdm.tqdm(range(num_examples), leave=False, ascii=True)
     for (x, label), _ in zip(dataset, range(num_batchs_max)):
-        if method == 'jacob':
+        if 'jacob' in method:
             measure = get_laplacian_jacob_based(model, x, label, batch_size, batched_image_shape)
-        elif method == 'hessian':
+            print('jacob', measure)
+        if 'hessian' in method:
             measure = get_laplacian_hessian_based(model, x, label, batch_size)
-        elif method == 'hutchinson':
+            print('hessian', measure)
+        if 'hutchinson' in method:
             measure = hutchinson_trick(model, x, label, batch_size, monte_carlo_samples, unbatched_image_shape)
+            print('hutchinson', measure)
         measures.append(measure)
         progress.update(batch_size)
             
