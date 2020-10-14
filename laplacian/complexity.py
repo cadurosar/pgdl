@@ -92,10 +92,10 @@ def complexity(model, dataset):
     dummy_input = next(dataset.take(1).batch(1).__iter__())[0]  # warning: one image disappears
     batch_size = 12  # 8 works
     method = 'hutchinson'
-    monte_carlo_samples = 20
+    monte_carlo_samples = 15
     unbatched_image_shape = tuple(dummy_input.shape[1:])
     batched_image_shape = (batch_size,) + unbatched_image_shape
-    num_examples = 2048
+    num_examples = 1300
     num_batchs_max = num_examples // batch_size
     dataset = raw_batchs(dataset, batch_size)
     progress = tqdm.tqdm(range(num_examples), leave=False, ascii=True)
