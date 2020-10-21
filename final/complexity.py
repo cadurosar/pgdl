@@ -201,7 +201,7 @@ def adversarial_score(model, dataset, num_batchs_max,
                                  lbda, epsilon, length_unit, sup_ce, dataset_bounds,
                                  dilatation_rate, euclidian_var, momentum, verbose)
             radii.append(radius)
-        if algo == 'mixed':
+        elif algo == 'mixed':
             radius = find_radius(model, x_0, label,
                                  num_steps_explore, step_size, explore_pop_size,
                                  lbda, epsilon, length_unit, sup_ce, dataset_bounds,
@@ -209,7 +209,7 @@ def adversarial_score(model, dataset, num_batchs_max,
             radii.append(radius)
             loss = order2_lip(model, x_0, label, softmax=True)
             losses.append(loss)
-            print(float(radius),float(loss))
+            # print(float(radius),float(loss))
     if algo == 'order2':
         criterion = tf.stack(losses) ** beta
     elif algo == 'radii':
