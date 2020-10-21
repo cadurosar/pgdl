@@ -7,6 +7,7 @@ python3 ingestion_program/ingestion_tqdm.py ../datasets/public_data sample_resul
 python3 scoring_program/score.py ../datasets/public_data sample_result_submission scores"""
 
 import os
+import sys
 import math
 import numpy as np
 import tensorflow as tf
@@ -217,7 +218,7 @@ def adversarial_score(model, dataset, num_batchs_max,
         left  = 10. * tf.cast(tf.stack(losses), dtype=tf.float64)**beta
         right = 10. * tf.cast(tf.stack(radii), dtype=tf.float64)**alpha
         print("", flush=True)
-        print("ENDING", tf.reduce_mean(left), tf.reduce_mean(right), flush=True)
+        sys.stderr.write("ENDING", tf.reduce_mean(left), tf.reduce_mean(right), flush=True)
         criterion = left * right
     mom = median_of_means(criterion, 8)
     print("MOM", mom)
