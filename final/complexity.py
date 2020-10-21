@@ -209,7 +209,7 @@ def adversarial_score(model, dataset, num_batchs_max,
             radii.append(radius)
             loss = order2_lip(model, x_0, label, softmax=True)
             losses.append(loss)
-            # print(float(radius),float(loss))
+            print(float(radius),float(loss))
     if algo == 'order2':
         criterion = tf.stack(losses) ** beta
     elif algo == 'radii':
@@ -218,7 +218,7 @@ def adversarial_score(model, dataset, num_batchs_max,
         left  = 10. * tf.cast(tf.stack(losses), dtype=tf.float64)**beta
         right = 10. * tf.cast(tf.stack(radii), dtype=tf.float64)**alpha
         print("", flush=True)
-        sys.stderr.write("ENDING", tf.reduce_mean(left), tf.reduce_mean(right), flush=True)
+        print("ENDING", tf.reduce_mean(left), tf.reduce_mean(right), flush=True)
         criterion = left * right
     mom = median_of_means(criterion, 8)
     print("MOM", mom)
