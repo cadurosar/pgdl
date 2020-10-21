@@ -152,76 +152,69 @@ def find_radius(model, x_0, label,
 def median_of_means(datas, num_splits):
     datas = tf.split(datas, num_or_size_splits=num_splits)  # Median of Means
     datas = [tf.reduce_mean(data) for data in datas]
+    print(datas)
     datas = np.median([data.numpy() for data in datas])
     return datas
 
-def find_pop_adv(model, x_0, label,
-                 num_steps, step_size, population_size,
-                 lbda, epsilon, length_unit, sup_ce, dataset_bounds,
-                 euclidian_var, momentum, verbose):
-    ball_l_inf    = epsilon / length_unit
-    x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
-    x             = projection(x, x_0, epsilon, dataset_bounds)
-    old_g         = tf.constant(0.)
-    tol_out       = tf.constant(0.90)  # once than more than 80% of individuals have saturated, it is validated
-    tol_lr        = tf.constant(0.10)  # at least 10% increase otherwise bigger learning rate
-    step_size_mult = tf.constant(1.5)
-    last_criterion = tf.constant(-math.inf)
-    if verbose:
-        print(f'Scan ball with optimal radius {epsilon:.3f}')
-    best_loss = tf.constant(-math.inf)
-    for step in range(num_steps):
-        step_infos = gradient_step(model, label, x_0, x, old_g,
-                                   step_size, epsilon, lbda,
-                                   dataset_bounds,
-                                   euclidian_var, momentum)
-        x, loss, criterion, variance, old_g = step_infos
-        if verbose == 2:
-            print(f'[{step+1}] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-        best_loss = tf.maximum(best_loss, loss)
-        if last_criterion - criterion > tol_lr * sup_ce:  # LR too big
-            step_size = step_size / step_size_mult
-        elif criterion - last_criterion < tol_lr * sup_ce:  # LR too small
-            step_size = step_size * step_size_mult
-        if criterion > tol_out * sup_ce:
-            criterion = sup_ce  # task considered successful
-            break
-        last_criterion = criterion
-    y = model(x + x_0)
-    loss, criterion, variance = full_loss(label, y, x, lbda, euclidian_var)
-    best_loss = tf.maximum(best_loss, loss)
-    if verbose == 1:
-        print(f'[OUT] Criterion={criterion:+5.3f} Variance={variance:+5.3f} Loss={loss:+5.3f}')
-    return best_loss  # criterion+variance both taken into account
+@tf.function
+def evaluate_lip(model, x, labels, softmax):
+    with tf.GradientTape(watch_accessed_variables=False) as tape:
+        tape.watch(x)
+        y = model(x)
+        if softmax:
+            y = tf.nn.softmax(y)
+            y = tf.gather(y, indices=labels, axis=1)  # axis=0 is batch dimension, axis=1 is logits
+        else:
+            y = tf.nn.softmax_cross_entropy_with_logits(labels, y)
+    dy_dx = tape.batch_jacobian(y, x)
+    batch_squared_norm = tf.math.reduce_sum(dy_dx ** 2, axis=list(range(1,len(dy_dx.shape))))
+    lips = tf.math.reduce_mean(batch_squared_norm)
+    return lips
 
+@tf.function
+def order2_lip(model, x, labels, softmax):
+    with tf.GradientTape(watch_accessed_variables=False) as tape:
+        tape.watch(x)
+        lips = evaluate_lip(model, x, labels, softmax)
+    order2 = tape.gradient(lips, x)
+    order2_norm = tf.math.reduce_sum(order2 ** 2, axis=list(range(1,len(order2.shape))))
+    return tf.math.reduce_mean(order2_norm)
 
 def adversarial_score(model, dataset, num_batchs_max,
-                      num_steps_explore, num_steps_exploit, step_size,
-                      explore_pop_size, exploit_pop_size,
+                      num_steps_explore, step_size,
+                      explore_pop_size,
                       lbda, epsilon, length_unit, sup_ce, dataset_bounds,
-                      dilatation_rate, euclidian_var, momentum, radii_only, acc_gap,
-                      verbose):
+                      dilatation_rate, euclidian_var, momentum, acc_gap,
+                      algo, verbose):
     losses, radii = [], []
     for (x_0, label), _ in zip(dataset, progress_bar(num_batchs_max)):
         # print('Sizes: ', tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
         if acc_gap:
             label = tf.math.argmax(model(x_0), axis=-1, output_type=label.dtype)
-        radius = find_radius(model, x_0, label,
-                             num_steps_explore, step_size, explore_pop_size,
-                             lbda, epsilon, length_unit, sup_ce, dataset_bounds,
-                             dilatation_rate, euclidian_var, momentum, verbose)
-        radii.append(radius)
-        if not radii_only:
-            pg_loss = find_pop_adv(model, x_0, label,
-                                   num_steps_exploit, step_size, exploit_pop_size,
-                                   lbda, radius, length_unit, sup_ce, dataset_bounds,
-                                   euclidian_var, momentum, verbose)
-            losses.append(pg_loss)
-    radii  = tf.constant(1.) / tf.stack(radii)
-    if radii_only:
-        return float(tf.reduce_mean(radii))
-    losses = tf.stack(losses)
-    return tf.reduce_mean(losses * radii)  # dot product for expectation
+        if algo == 'order2':
+            loss = order2_lip(model, x_0, label, softmax=True)
+            losses.append(loss)
+        elif algo == 'radii':
+            radius = find_radius(model, x_0, label,
+                                 num_steps_explore, step_size, explore_pop_size,
+                                 lbda, epsilon, length_unit, sup_ce, dataset_bounds,
+                                 dilatation_rate, euclidian_var, momentum, verbose)
+            radii.append(radius)
+        if algo == 'mixed':
+            radius = find_radius(model, x_0, label,
+                                 num_steps_explore, step_size, explore_pop_size,
+                                 lbda, epsilon, length_unit, sup_ce, dataset_bounds,
+                                 dilatation_rate, euclidian_var, momentum, verbose)
+            radii.append(radius)
+            loss = evaluate_lip(model, x_0, label, softmax=True)
+            losses.append(loss)
+    if algo == 'order2':
+        criterion = losses
+    elif algo == 'radii':
+        criterion  = tf.constant(1.) / tf.stack(radii)
+    elif algo == 'mixed':
+        criterion = tf.stack(losses) / tf.stack(radii) 
+    return median_of_means(criterion, 18)
 
 def complexity(model, dataset):
     """Return complexity w.r.t a model and a dataset.
@@ -237,7 +230,6 @@ def complexity(model, dataset):
         num_batchs_max  = to be changed as function of running time
         num_steps       = path length
         explore_pop_size= number of adversarial samples during exploration
-        exploit_pop_size= number of adversarial samples during exploitation
         step_size       = learning rate
         sup_ce          = upper bound on satured cross entropy
         lbda            = weight of variance regularization
@@ -254,11 +246,9 @@ def complexity(model, dataset):
     output_shape = model(dummy_input).shape
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
-    num_batchs_max  = 1500  # runtime ok when radii_only = False
+    num_batchs_max  = 5400  # for radius, 50 will work
     num_steps_explore= tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
-    num_steps_exploit= tf.constant(18, dtype=tf.int32)
     explore_pop_size= 4   # small pop for fast radius detection
-    exploit_pop_size= 12  # three times bigger => at most 9 steps
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
     epsilon_mult    = 0.01
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
@@ -275,13 +265,14 @@ def complexity(model, dataset):
     radii_only      = True
     acc_gap         = False
     verbose         = 0
+    algo            = 'order2'
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
-                                 num_steps_explore, num_steps_exploit, step_size,
-                                 explore_pop_size, exploit_pop_size,
+                                 num_steps_explore, step_size,
+                                 explore_pop_size,
                                  lbda, epsilon, length_unit, sup_ce,
                                  (inf_dataset, sup_dataset),
                                  dilatation_rate, euclidian_var,
-                                 momentum, radii_only, acc_gap, verbose)
+                                 momentum, acc_gap, algo, verbose)
     return avg_loss
 
 

@@ -1,10 +1,10 @@
 """Influence score.
 
-python3 ingestion_program/ingestion_tqdm.py datasets/sample_data sample_result_submission ingestion_program influence
-python3 scoring_program/score.py datasets/sample_data sample_result_submission scores
+python3 ingestion_program/ingestion_tqdm.py ../datasets/sample_data sample_result_submission ingestion_program influence
+python3 scoring_program/score.py ../datasets/sample_data sample_result_submission scores
 
-python3 ingestion_program/ingestion_tqdm.py datasets/public_data sample_result_submission ingestion_program influence
-python3 scoring_program/score.py datasets/public_data sample_result_submission scores"""
+python3 ingestion_program/ingestion_tqdm.py ../datasets/public_data sample_result_submission ingestion_program influence
+python3 scoring_program/score.py ../datasets/public_data sample_result_submission scores"""
 
 import os
 import math
@@ -12,9 +12,21 @@ from functools import wraps
 from time import time
 import numpy as np
 import tensorflow as tf
-from utils import progress_bar, balanced_batchs, raw_batchs
+import utils
 import tqdm
 
+
+# @tf.function
+def forward_until(model, x, layer_cut):
+    for layer in model.layers[:layer_cut]:
+        x = layer(x)
+    return x
+
+# @tf.function
+def forward_from(model, x, layer_cut):
+    for layer in model.layers[layer_cut:]:
+        x = layer(x)
+    return x
 
 
 def get_weights_last_layers(model, n_last_layers: int, only_kernel: bool):
@@ -23,21 +35,28 @@ def get_weights_last_layers(model, n_last_layers: int, only_kernel: bool):
     Args:
         model: Sequential Keras model
         n_last_layers: integer, number of last layers to take into account
+        only_kernel: keep only first weight of each layer (usually the kernel W)
 
     Return:
         the weights of the layers
 
-    Remark:
-        one might want to modify this function to only select kernel and not bias, for example
     """
     weights = []
     for layer in model.layers[n_last_layers:]:
         if only_kernel:
-            weights.append(layer.weights[-1])
+            weights.append(layer.weights[0])
         else:
             weights += layer.weights
-
     return weights
+
+
+def seek_last_layer(model, num_last_layers: int):
+    count = 0
+    for i, layer in enumerate(model.layers[::-1]):
+        if len(layer.weights):
+            count += 1
+        if count >= num_last_layers:
+            return (-i-1)
 
 
 @tf.function
@@ -57,7 +76,7 @@ def flatten_grads(grads):
     return [tf.reshape(grad, -1) for grad in grads]
 
 
-def get_hessian_wrt_parameters(model, weights, x_latent, n_last_layers, label):
+def get_hessian_from_jacobian(model, weights, x_latent, n_last_layers, label):
     """Hessians of the model for input.
 
     Args:
@@ -84,9 +103,28 @@ def get_hessian_wrt_parameters(model, weights, x_latent, n_last_layers, label):
         with tf.GradientTape(persistent=True) as tape_grad:
             y = forward_from(model, x_latent, n_last_layers)
             loss = ce_loss(label, y)
-            grads = tape_grad.gradients(loss, weights)  # list of gradients for each weight
-        hessians = [tape_hess.jacobian(grad, weights) for grad in grads]
+        grads = tape_grad.gradient(loss, weights)  # list of gradients for each weight
+    hessians = [tape_hess.jacobian(grad, weights) for grad in grads]
+    return hessians
 
+
+@tf.function
+def inner_hessian(model, weights, x_latent, n_last_layers, label):
+    y = forward_from(model, x_latent, n_last_layers)
+    loss = ce_loss(label, y)
+    return tf.hessians(loss, weights)
+
+
+def get_hessian_from_tf(model, weights, x_latent, n_last_layers, label):
+    block_hessians = inner_hessian(model, weights, x_latent, n_last_layers, label)
+    hessians = [[None] * len(weights) for _ in range(len(weights))]
+    for i in range(len(weights)):
+        for j in range(len(weights)):
+            if i == j:
+                hessians[i][j] = block_hessians[i]
+            else:
+                h_ij = tf.zeros(shape=tuple(weights[i].shape)+tuple(weights[j].shape))
+                hessians[i][j] = h_ij
     return hessians
 
 
@@ -112,7 +150,6 @@ def merge_hessians(hessians, batch_hessians, step):
         accumulated.append([])
         for hes, hes_batch in zip(outer_hes, outer_batch_hes):
             accumulated[-1].append(hes + (hes_batch - hes) / (step + 1))  # moving average
-
     return accumulated
 
 
@@ -136,12 +173,11 @@ def square_hessians(hessians, weights):
     for i in range(len(hessians)):
         hessians_i = hessians[i]
         weights_i_shape = tuple(weights[i].shape)
-        hessians_i = [tf.reshape(hessians_i, shape=weights_i_shape + (-1,))]
+        hessians_i = [tf.reshape(hessians_ij, shape=weights_i_shape + (-1,)) for hessians_ij in hessians_i]
         hessians_i = tf.concat(hessians_i, axis=-1)
         hessians_i = tf.reshape(hessians_i, shape=(-1, int(hessians_i.shape[-1])))
         hessians_flattened.append(hessians_i)
     hessians_flattened = tf.concat(hessians_flattened, axis=0)
-
     return hessians_flattened
 
 
@@ -162,11 +198,10 @@ def naive_exact_inverse_hessians(hessians, weights):
     """
     square = square_hessians(hessians, weights)
     square_inv = tf.linalg.inv(square)
-
     return square_inv
 
 
-def get_avg_hessian(model, dataset, weights, num_batchs_max: int, n_last_layers: int):
+def get_avg_hessian(model, dataset, weights, num_batchs_max: int, n_last_layers: int, hessian_from_jacob: bool):
     """Return the average of hessians.
 
     Args:
@@ -178,11 +213,14 @@ def get_avg_hessian(model, dataset, weights, num_batchs_max: int, n_last_layers:
     Return:
         a list of lists of second order derivatives, averaged over many batchs
     """
-    progress = progress_bar(num_batchs_max)
+    progress = utils.progress_bar(num_batchs_max)
     hessians = None  # will be updated after first iteration
     for (x, label), step in zip(dataset, progress):
         x_latent = forward_until(model, x, n_last_layers)  # no need to record in tape this forward, to save memory
-        hessians_batch = get_hessian_wrt_parameters(model, weights, x, n_last_layers, label)
+        if hessian_from_jacob:
+            hessians_batch    = get_hessian_from_jacobian(model, weights, x_latent, n_last_layers, label)
+        else:
+            hessians_batch    = get_hessian_from_tf(model, weights, x_latent, n_last_layers, label)
         hessians = merge_hessians(hessians, hessians_batch, step)
     return hessians
 
@@ -192,7 +230,6 @@ def dummy_forward(model, dataset):
     dummy_input = next(dataset.take(1).batch(1).__iter__())[0]  # warning: one image disappears
     output_shape = model(dummy_input).shape
     num_labels = int(output_shape[-1])
-
     return num_labels
 
 
@@ -200,18 +237,17 @@ def get_batch_gradients(model, label, x, weights):
     with tf.GradientTape() as tape:
         y = model(x)
         loss = ce_loss(label, y)  # average over batch
-        grads = tape.gradients(loss, weights)
-    grads = tf.concat(flatten_grads(grads))
-
+        grads = tape.gradient(loss, weights)
+    grads = tf.concat(flatten_grads(grads), axis=0)
     return grads
 
 
 def naive_influence_avg(model, dataset, inv_hessian, weights, num_batchs_max):
     influences = []
-    progress = progress_bar(num_batchs_max)
+    progress = utils.progress_bar(num_batchs_max)
     for (x, label), _ in zip(dataset, progress):
         grads = get_batch_gradients(model, label, x, weights)
-        influence_fn = inv_hessian @ grads
+        influence_fn = tf.linalg.matvec(inv_hessian, grads)
         influence_norm = tf.norm(influence_fn)
         influences.append(influence_norm)
     return float(tf.reduce_mean(influences))
@@ -219,7 +255,7 @@ def naive_influence_avg(model, dataset, inv_hessian, weights, num_batchs_max):
 
 def fast_cgd(model, dataset, hessian, weights, num_batchs_max):
     gd_fn = tf.linalg.experimental.conjugate_gradient
-    progress = progress_bar(num_batchs_max)
+    progress = utils.progress_bar(num_batchs_max)
     influences = []
     hessian_op = tf.linalg.LinearOperatorFullMatrix(hessian,
                                                     is_non_singular=True,  # WARNING
@@ -248,26 +284,27 @@ def normalize_influence(influence, weights):
     The goal of this function is to ensure comparable ranges within different networks.
     """
     param_dimensions = sum([float(tf.size(weight)) for weight in weights])
-
     return influence / math.sqrt(param_dimensions)
 
 
 def complexity(model, dataset):
     num_labels = dummy_forward(model, dataset)
-    num_batchs_hessian_estimation = 64
-    num_batchs_influence          = 64
-    batch_size                    = 16
-    n_last_layers                 = -1  # last kernel layer only
+    num_batchs_hessian_estimation = 16 #64
+    num_batchs_influence          = 32 #64
+    batch_size                    = 32
+    num_last_layers               = 1
+    n_last_layers                 = seek_last_layer(model, num_last_layers)
     only_kernel                   = True
     conjugate_gd                  = False
-    dataset         = raw_batchs(dataset, batch_size=batch_size)
+    hessian_from_jacob            = True
+    dataset         = utils.raw_batchs(dataset, batch_size=batch_size)
     weights         = get_weights_last_layers(model, n_last_layers=n_last_layers, only_kernel=only_kernel)
-    hessians        = get_avg_hessian(model, dataset, num_batchs_max=num_batchs_max, n_last_layers=n_last_layers)
+    hessians        = get_avg_hessian(model, dataset, weights, num_batchs_hessian_estimation, n_last_layers, hessian_from_jacob)
     if conjugate_gd:
-        hessian         = square_hessians(hessians)
-        influence       = fast_cgd(model, dataset, hessian, weights, num_batchs_max)
+        hessian         = square_hessians(hessians, weights)
+        influence       = fast_cgd(model, dataset, hessian, weights, num_batchs_influence)
     else:
         inv_hessian     = naive_exact_inverse_hessians(hessians, weights)
-        influence       = naive_influence_avg(model, dataset, inv_hessian, weights, num_batchs_max)
-    influence = normalized_influence(influence, weights)
+        influence       = naive_influence_avg(model, dataset, inv_hessian, weights, num_batchs_influence)
+    influence = normalize_influence(influence, weights)
     return influence
