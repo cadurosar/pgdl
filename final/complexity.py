@@ -216,6 +216,7 @@ def adversarial_score(model, dataset, num_batchs_max,
     elif algo == 'mixed':
         left  = 10. * tf.cast(tf.stack(losses), dtype=tf.float64)**beta
         right = 10. * tf.cast(tf.stack(radii), dtype=tf.float64)**alpha
+        print("")
         print("ENDING", tf.reduce_mean(left), tf.reduce_mean(right))
         criterion = left * right
     mom = median_of_means(criterion, 8)
