@@ -1,7 +1,6 @@
 
 import tensorflow as tf
 try:
-    raise 42
     import tqdm
     def progress_bar(num_batchs):
         return tqdm.tqdm(range(num_batchs), leave=False, ascii=True)
