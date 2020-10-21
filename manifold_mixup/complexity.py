@@ -34,7 +34,7 @@ def evaluate_lip(model, x, labels, softmax):
     return lips
 
 def lipschitz_score(model, dataset, batch_size, num_batchs_max, softmax):
-    dataset = raw_batchs(dataset, batch_size)
+    dataset = raw_batchs(dataset, batch_size)  # balanced_batchs(dataset, num_labels, batch_size)
     scores = []
     progress = progress_bar(num_batchs_max)
     for (x, labels), _ in zip(dataset, progress):
@@ -87,7 +87,7 @@ def rank_to_score(mean_per_eps):
     return float(tf.reduce_mean(mean_per_eps))
 
 def mean_robustness(model, dataset, num_batchs_max, noisy_per_epsilon):
-    dataset = raw_batchs(dataset, batch_size=1)
+    dataset = raw_batchs(dataset, batch_size=1)  
     progress = progress_bar(num_batchs_max)
     epsilon = tf.constant([1e-2, 2e-2])
     robustnesses = []

@@ -152,7 +152,7 @@ def find_radius(model, x_0, label,
 def median_of_means(datas, num_splits):
     datas = tf.split(datas, num_or_size_splits=num_splits)  # Median of Means
     datas = [tf.reduce_mean(data) for data in datas]
-    print(datas)
+    print(sorted(np.array([data.numpy() for data in datas]).tolist()))
     datas = np.median([data.numpy() for data in datas])
     return datas
 
@@ -185,7 +185,7 @@ def adversarial_score(model, dataset, num_batchs_max,
                       explore_pop_size,
                       lbda, epsilon, length_unit, sup_ce, dataset_bounds,
                       dilatation_rate, euclidian_var, momentum, acc_gap,
-                      algo, verbose):
+                      algo, alpha, beta, verbose):
     losses, radii = [], []
     for (x_0, label), _ in zip(dataset, progress_bar(num_batchs_max)):
         # print('Sizes: ', tf.reduce_max(x), tf.reduce_min(x), tf.reduce_mean(x))
@@ -206,15 +206,21 @@ def adversarial_score(model, dataset, num_batchs_max,
                                  lbda, epsilon, length_unit, sup_ce, dataset_bounds,
                                  dilatation_rate, euclidian_var, momentum, verbose)
             radii.append(radius)
-            loss = evaluate_lip(model, x_0, label, softmax=True)
+            loss = order2_lip(model, x_0, label, softmax=True)
             losses.append(loss)
+            # print(float(radius),float(loss))
     if algo == 'order2':
-        criterion = losses
+        criterion = tf.stack(losses) ** beta
     elif algo == 'radii':
-        criterion  = tf.constant(1.) / tf.stack(radii)
+        criterion  = tf.stack(radii) ** alpha
     elif algo == 'mixed':
-        criterion = tf.stack(losses) / tf.stack(radii) 
-    return median_of_means(criterion, 18)
+        left  = 10. * tf.cast(tf.stack(losses), dtype=tf.float64)**beta
+        right = 10. * tf.cast(tf.stack(radii), dtype=tf.float64)**alpha
+        print("ENDING", tf.reduce_mean(left), tf.reduce_mean(right))
+        criterion = left * right
+    mom = median_of_means(criterion, 8)
+    print("MOM", mom)
+    return mom
 
 def complexity(model, dataset):
     """Return complexity w.r.t a model and a dataset.
@@ -246,7 +252,7 @@ def complexity(model, dataset):
     output_shape = model(dummy_input).shape
     num_labels = int(output_shape[-1])
     dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
-    num_batchs_max  = 5400  # for radius, 50 will work
+    num_batchs_max  = 880  # Must be a multiple of 18=[144, 900, 5600] or 11=[440, 880, 5500] or 8=[880]
     num_steps_explore= tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
     explore_pop_size= 4   # small pop for fast radius detection
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
@@ -265,14 +271,16 @@ def complexity(model, dataset):
     radii_only      = True
     acc_gap         = False
     verbose         = 0
-    algo            = 'order2'
+    algo            = 'mixed'
+    alpha           = -2
+    beta            = -1
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, step_size,
                                  explore_pop_size,
                                  lbda, epsilon, length_unit, sup_ce,
                                  (inf_dataset, sup_dataset),
                                  dilatation_rate, euclidian_var,
-                                 momentum, acc_gap, algo, verbose)
+                                 momentum, acc_gap, algo, alpha, beta, verbose)
     return avg_loss
 
 
