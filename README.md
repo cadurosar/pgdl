@@ -61,6 +61,7 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |         Weighted Inverse Radii            |  13.99 |   3.26  |     12.84    |     15.14     |      05.35     |      1.18      |  
 |               Laplacian                   |  10.49 |   5.88  |     08.14    |     12.83     |      10.86     |      0.89      |
 |             Norm Gradient                 |  06.16 |   5.32  |     04.17    |     08.15     |      02.48     |      8.16      |
+|               Hutchinson                  |  02.35 |   8.39  |     00.78    |     03.92     |      09.51     |      7.27      |  
 
 # Time spent on the public set/private set
 
@@ -85,4 +86,5 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |         Big Adversarial Radii             |      138     |       75      |       89       |       77       |
 |        Weighted Inverse Radii             |      117     |       44      |       192      |       152      |
 |                Laplacian                  |      152     |       108     |       230      |       135      |
-|               Norm Gradient               |      32      |        20     |       151      |        96      |
+|               Norm Gradient               |      32      |       20      |       151      |        96      |
+|                Hutchinson                 |      93      |       57      |       248      |       155      |
