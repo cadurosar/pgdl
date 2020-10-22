@@ -62,7 +62,8 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |               Laplacian                   |  10.49 |   5.88  |     08.14    |     12.83     |      10.86     |      0.89      |
 |             Norm Gradient                 |  06.16 |   5.32  |     04.17    |     08.15     |      02.48     |      8.16      |
 |               Hutchinson                  |  02.35 |   8.39  |     00.78    |     03.92     |      09.51     |      7.27      |
-|              Norm of Norm                 |  06.53 |         |     05.05    |     08.00     |                |                |
+|              Norm of Norm                 |  06.53 |   5.42  |     05.05    |     08.00     |      02.20     |      8.65      |
+|                 Mixed                     |  05.38 |   4.66  |     06.79    |     08.00     |      02.80     |      6.52      |
 
 # Time spent on the public set/private set
 
@@ -89,4 +90,5 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |                Laplacian                  |      152     |       108     |       230      |       135      |
 |               Norm Gradient               |      32      |       20      |       151      |        96      |
 |                Hutchinson                 |      93      |       57      |       248      |       155      |
-|               Norm of Norm                |      51      |       42      |                |                |
+|               Norm of Norm                |      51      |       42      |       114      |        73      |
+|                   Mixed                   |      148     |       82      |       172      |       132      |

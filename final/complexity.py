@@ -207,7 +207,7 @@ def adversarial_score(model, dataset, num_batchs_max,
                                  lbda, epsilon, length_unit, sup_ce, dataset_bounds,
                                  dilatation_rate, euclidian_var, momentum, verbose)
             radii.append(radius)
-            loss = order2_lip(model, x_0, label, softmax=True)
+            loss = evaluate_lip(model, x_0, label, softmax=True)
             losses.append(loss)
             # print(float(radius),float(loss))
     if algo == 'order2':
@@ -275,7 +275,7 @@ def complexity(model, dataset):
     verbose         = 0
     algo            = 'mixed'
     alpha           = -1
-    beta            = 1
+    beta            = 0.5
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, step_size,
                                  explore_pop_size,
