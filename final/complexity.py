@@ -215,8 +215,10 @@ def adversarial_score(model, dataset, num_batchs_max,
     elif algo == 'radii':
         criterion  = tf.stack(radii) ** alpha
     elif algo == 'mixed':
-        left  = 10. * tf.cast(tf.stack(losses), dtype=tf.float64)**beta
-        right = 10. * tf.cast(tf.stack(radii), dtype=tf.float64)**alpha
+        left  = tf.cast(tf.stack(radii), dtype=tf.float64)
+        right = tf.cast(tf.stack(losses), dtype=tf.float64)
+        left  = 10. * (left ** alpha)
+        right = 10. * (right ** beta)
         print("", flush=True)
         print("ENDING", tf.reduce_mean(left), tf.reduce_mean(right), flush=True)
         criterion = left * right
@@ -274,8 +276,8 @@ def complexity(model, dataset):
     acc_gap         = False
     verbose         = 0
     algo            = 'mixed'
-    alpha           = -1
-    beta            = 0.5
+    alpha           = 1
+    beta            = 2
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, step_size,
                                  explore_pop_size,
