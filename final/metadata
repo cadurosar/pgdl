@@ -1,2 +1,10 @@
-description: average of the inverse of the radii of adversarial robustness.  
+description: >
+    product between two measures F and G.
+    G is the average of gradient norm.
+    F is the average of the inverse of average radius adversarial robustness,
+    i.e the radius of the ball where enough randomly sampled examples are adversarial.
 
+Algue: Louis Bethune, louis.bethune@ens-lyon.fr
+cadurosar: Carlos Lassance, cadurosar@gmail.com
+mbonto: Myriam Bontonou, myriam.bontonou@imt-atlantique.fr
+vgripon: Vincent Gripon, vincent.gripon@imt-atlantique.fr

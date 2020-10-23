@@ -275,8 +275,8 @@ def complexity(model, dataset):
     radii_only      = True
     acc_gap         = False
     verbose         = 0
-    algo            = 'mixed'
-    alpha           = 1
+    algo            = 'radii'
+    alpha           = -1
     beta            = 2
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, step_size,
