@@ -1,10 +1,16 @@
 description: >
-    product between two measures F and G.
-    G is the average of gradient norm.
-    F is the average of the inverse of average radius adversarial robustness,
+    Average of the inverse of radius of average adversarial robustness.
     i.e the radius of the ball where enough randomly sampled examples are adversarial.
+    The population of perturbed examples (4 in total) follows the gradient w.r.t input to seek for the adversarial direction (PGD algorithm).
+    The radius keepen is the one for which most of the examples are adversarial (at least one over the 4).  
+    An additional loss ensures that those adversarial examples stay far apart from each other (cosine similiarty minimization).
+    Median of Means ensures the stability of the estimate.
+    More details will be given in a workshop style paper, if organizers ask us to do it.
+
 
 Algue: Louis Bethune, louis.bethune@ens-lyon.fr
 cadurosar: Carlos Lassance, cadurosar@gmail.com
 mbonto: Myriam Bontonou, myriam.bontonou@imt-atlantique.fr
 vgripon: Vincent Gripon, vincent.gripon@imt-atlantique.fr
+
+
