@@ -1,11 +1,9 @@
 description: >
-    Average of the inverse of radius of average adversarial robustness.
-    i.e the radius of the ball where enough randomly sampled examples are adversarial.
-    The population of perturbed examples (4 in total) follows the gradient w.r.t input to seek for the adversarial direction (PGD algorithm).
-    The radius keepen is the one for which most of the examples are adversarial (at least one over the 4).  
-    An additional loss ensures that those adversarial examples stay far apart from each other (cosine similiarty minimization).
-    Median of Means ensures the stability of the estimate.
-    More details will be given in a workshop style paper, if organizers ask us to do it.
+    Average of the norm of the output w.r.t input.
+    This heuristik is a proxy of robustness, since the gradient of the input
+    is used to build adversarial samples in most methods.
+    Moreover it is a local approximation of Lipschitz constant. The higher the constant,
+    the less regularized the network is, and the worst we expect the results to be. 
 
 
 Algue: Louis Bethune, louis.bethune@ens-lyon.fr
