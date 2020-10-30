@@ -64,6 +64,8 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |               Hutchinson                  |  02.35 |   8.39  |     00.78    |     03.92     |      09.51     |      7.27      |
 |              Norm of Norm                 |  06.53 |   5.42  |     05.05    |     08.00     |      02.20     |      8.65      |
 |                 Mixed                     |  05.38 |   4.66  |     06.79    |     08.00     |      02.80     |      6.52      |
+|             Log Lipschitz                 |  04.43 |         |     06.43    |     02.42     |                |                |
+|       Negative Log Lipschitz              |  04.86 |         |     06.18    |     03.54     |                |                |
 
 # Time spent on the public set/private set
 

@@ -76,6 +76,8 @@ def hutchinson_forward(model, x, label, unbatched_image_shape):
 def median_of_means(datas, num_splits):
     datas = tf.split(datas, num_splits)  # Median of Means
     datas = [tf.reduce_mean(data) for data in datas]
+    if num_splits > 3:
+        print(sorted(np.array([data.numpy() for data in datas]).tolist()))
     datas = np.median([data.numpy() for data in datas])
     return datas
 
@@ -86,18 +88,20 @@ def hutchinson_trick(model, x, label, batch_size, monte_carlo_samples, unbatched
         laplacian = hutchinson_forward(model, x, label, unbatched_image_shape)
         laplacians.append(laplacian)
     # print(tf.stack(laplacians), tf.reduce_mean(laplacians), tf.math.reduce_std(laplacians))
-    return median_of_means(laplacians, 5)
+    return median_of_means(laplacians, 3)
 
 def complexity(model, dataset):
     dummy_input = next(dataset.take(1).batch(1).__iter__())[0]  # warning: one image disappears
-    batch_size = 12  # 8 works
+    output_shape = model(dummy_input).shape
+    num_labels = int(output_shape[-1])
+    batch_size = 8  # 12 works
     method = 'hutchinson'
-    monte_carlo_samples = 15
+    monte_carlo_samples = 30
     unbatched_image_shape = tuple(dummy_input.shape[1:])
     batched_image_shape = (batch_size,) + unbatched_image_shape
-    num_examples = 1300
+    num_examples = 1440
     num_batchs_max = num_examples // batch_size
-    dataset = raw_batchs(dataset, batch_size)
+    dataset = balanced_batchs(dataset, num_labels, batch_size) # raw_batchs(dataset, batch_size)
     progress = tqdm.tqdm(range(num_examples), leave=False, ascii=True)
     deltas = []
     jacobs = []
@@ -125,5 +129,6 @@ def complexity(model, dataset):
             if verbose:
                 print('delta', tf.reduce_mean(deltas)**0.5)
         progress.update(batch_size)
-    return float(tf.reduce_mean(hutchinsons))
+    hutchinsons = median_of_means(hutchinsons, 8)
+    return float(hutchinsons)
 

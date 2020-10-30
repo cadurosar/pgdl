@@ -1,9 +1,9 @@
 """Adversarial score.
 
-python3 ingestion_program/ingestion_tqdm.py sample_data sample_result_submission ingestion_program adversarial
+python3 ingestion_program/ingestion_tqdm.py sample_data sample_result_submission ingestion_program final
 python3 scoring_program/score.py sample_data sample_result_submission scores
 
-python3 ingestion_program/ingestion_tqdm.py ../datasets/public_data sample_result_submission ingestion_program adversarial
+python3 ingestion_program/ingestion_tqdm.py ../datasets/public_data sample_result_submission ingestion_program final
 python3 scoring_program/score.py ../datasets/public_data sample_result_submission scores"""
 
 import os
@@ -164,12 +164,19 @@ def evaluate_lip(model, x, labels, softmax):
         y = model(x)
         if softmax:
             y = tf.nn.softmax(y)
-            y = tf.gather(y, indices=labels, axis=1)  # axis=0 is batch dimension, axis=1 is logits
+            y = tf.math.reduce_max(y, axis=1, keepdims=True)  # axis=0 is batch dimension, axis=1 is logits
         else:
-            y = tf.nn.softmax_cross_entropy_with_logits(labels, y)
+            # labels = tf.expand_dims(labels, axis=1)
+            # y = tf.gather_nd(y, indices=labels, batch_dims=1)
+            # y = tf.expand_dims(y, axis=1)
+            y = tf.math.reduce_max(y, axis=1, keepdims=True)
     dy_dx = tape.batch_jacobian(y, x)
     batch_squared_norm = tf.math.reduce_sum(dy_dx ** 2, axis=list(range(1,len(dy_dx.shape))))
-    lips = tf.math.reduce_mean(batch_squared_norm)
+    # print(y, batch_squared_norm)
+    score = batch_squared_norm
+    score = tf.maximum(score, 1e-6)
+    score = 1. / score  # smaller Lipschitz, better result
+    lips = tf.math.reduce_mean(score)
     return lips
 
 @tf.function
@@ -195,6 +202,9 @@ def adversarial_score(model, dataset, num_batchs_max,
         if algo == 'order2':
             loss = order2_lip(model, x_0, label, softmax=True)
             losses.append(loss)
+        elif algo == 'order1':
+            loss = evaluate_lip(model, x_0, label, softmax=True)
+            losses.append(loss)
         elif algo == 'radii':
             radius = find_radius(model, x_0, label,
                                  num_steps_explore, step_size, explore_pop_size,
@@ -212,6 +222,10 @@ def adversarial_score(model, dataset, num_batchs_max,
             # print(float(radius),float(loss))
     if algo == 'order2':
         criterion = tf.stack(losses) ** beta
+    elif algo == 'order1':
+        criterion = tf.stack(losses)  # ** beta
+        # print("", flush=True)
+        # print("ENDING", tf.reduce_mean(criterion))
     elif algo == 'radii':
         criterion  = tf.stack(radii) ** alpha
     elif algo == 'mixed':
@@ -223,7 +237,7 @@ def adversarial_score(model, dataset, num_batchs_max,
         #print("ENDING", tf.reduce_mean(left), tf.reduce_mean(right), flush=True)
         criterion = left * right
     mom = median_of_means(criterion, 8)
-    #print("MOM", mom)
+    # print("MOM", mom)
     return mom
 
 def complexity(model, dataset):
@@ -255,8 +269,8 @@ def complexity(model, dataset):
     dummy_input = next(dataset.take(1).batch(1).__iter__())[0]  # warning: one image disappears
     output_shape = model(dummy_input).shape
     num_labels = int(output_shape[-1])
-    dataset         = balanced_batchs(dataset, num_labels, 1)  # one example at time
-    num_batchs_max  = 880  # Must be a multiple of 18=[144, 900, 5600] or 11=[440, 880, 5500] or 8=[880]
+    dataset         = balanced_batchs(dataset, num_labels, 8)  # one example at time
+    num_batchs_max  = 4400  # Must be a multiple of 18=[144, 900, 5600] or 11=[440, 880, 5500] or 8=[880,4400]
     num_steps_explore= tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
     explore_pop_size= 4   # small pop for fast radius detection
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
@@ -275,9 +289,9 @@ def complexity(model, dataset):
     radii_only      = True
     acc_gap         = False
     verbose         = 0
-    algo            = 'radii'
+    algo            = 'order1'
     alpha           = -1
-    beta            = 2
+    beta            = -1
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
                                  num_steps_explore, step_size,
                                  explore_pop_size,
