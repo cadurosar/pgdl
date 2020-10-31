@@ -30,15 +30,20 @@ def resume_model(model, layer_cut):
 
 
 def balanced_batchs(dataset, num_labels, batch_size=256):
+    if num_labels > 20:  # less equilibrium, stupid
+        return raw_batchs(dataset, batch_size=batch_size, buffer_size=5000)
     classes = []
     for label in range(num_labels):
         cur_class = dataset.filter(lambda data, y: tf.math.equal(y, label))
-        cur_class = cur_class.repeat().shuffle(256)
+        cur_class = cur_class.repeat().shuffle(50)
         classes.append(cur_class)
     return tf.data.experimental.sample_from_datasets(classes).batch(batch_size)
 
-def raw_batchs(dataset, batch_size=256):
-    return dataset.repeat().shuffle(buffer_size=10000).batch(batch_size)
+def raw_batchs(dataset, batch_size=256, buffer_size=10000):
+    if buffer_size == -1:
+        bs = len(dataset)
+        return dataset.repeat().shuffle(buffer_size=bs).batch(batch_size)
+    return dataset.repeat().shuffle(buffer_size=buffer_size).batch(batch_size)
 
 def mixup_pairs(dataset):
     dataset = raw_batchs(dataset)

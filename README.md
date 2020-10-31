@@ -66,6 +66,7 @@ Tables generated with https://www.tablesgenerator.com/markdown_tables:
 |                 Mixed                     |  05.38 |   4.66  |     06.79    |     08.00     |      02.80     |      6.52      |
 |             Log Lipschitz                 |  04.43 |         |     06.43    |     02.42     |                |                |
 |       Negative Log Lipschitz              |  04.86 |         |     06.18    |     03.54     |                |                |
+|             Inv Lipschitz                 |  16.11 |         |     10.94    |     21.28     |                |                |
 
 # Time spent on the public set/private set
 

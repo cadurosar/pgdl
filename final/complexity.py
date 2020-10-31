@@ -117,7 +117,7 @@ def find_radius(model, x_0, label,
     x, x_0, label = generate_population(x_0, label, ball_l_inf, population_size)
     x             = projection(x, x_0, epsilon, dataset_bounds)
     tol_out       = tf.constant(0.24)  # at least 24% for fast detection of successful candidates
-    patience      = 3  # after 3 unsuccessful steps, increase radius  
+    patience      = 1  # after 1 unsuccessful steps, increase radius  
     tol_plateau   = 0.03  # at least 3% improvement (8 steps required to trigger detection)
     last_plateau, last_criterion = 0, tf.constant(-math.inf)
     old_g         = tf.constant(0.)  # gradient momentum, dangerous outside stochastic regime
@@ -228,6 +228,8 @@ def adversarial_score(model, dataset, num_batchs_max,
         # print("ENDING", tf.reduce_mean(criterion))
     elif algo == 'radii':
         criterion  = tf.stack(radii) ** alpha
+        print("", flush=True)
+        print("ENDING", tf.reduce_mean(criterion))
     elif algo == 'mixed':
         left  = tf.cast(tf.stack(radii), dtype=tf.float64)
         right = tf.cast(tf.stack(losses), dtype=tf.float64)
@@ -237,7 +239,7 @@ def adversarial_score(model, dataset, num_batchs_max,
         #print("ENDING", tf.reduce_mean(left), tf.reduce_mean(right), flush=True)
         criterion = left * right
     mom = median_of_means(criterion, 8)
-    # print("MOM", mom)
+    print("MOM", mom)
     return mom
 
 def complexity(model, dataset):
@@ -267,14 +269,16 @@ def complexity(model, dataset):
         verbose         = 0 (no log), 1 (only radii and final step), 2 (all steps)
     """
     dummy_input = next(dataset.take(1).batch(1).__iter__())[0]  # warning: one image disappears
-    output_shape = model(dummy_input).shape
+    dummy_output = model(dummy_input)
+    output_shape = dummy_output.shape
     num_labels = int(output_shape[-1])
-    dataset         = balanced_batchs(dataset, num_labels, 8)  # one example at time
+    batch_size      = 8
+    dataset         = balanced_batchs(dataset, num_labels, batch_size)  # one example at time
     num_batchs_max  = 5000  # Must be a multiple of 18=[144, 900, 5600] or 11=[440, 880, 5500] or 8=[880,4400,5000]
-    num_steps_explore= tf.constant(27, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
+    num_steps_explore= tf.constant(21, dtype=tf.int32)  # at most 27/3=9 attempts, 2**9=512 bigger radius
     explore_pop_size= 4   # small pop for fast radius detection
     length_unit     = tf.math.sqrt(float(tf.size(dummy_input)))
-    epsilon_mult    = 0.01
+    epsilon_mult    = 0.005 * (tf.reduce_max(dummy_output) - tf.reduce_min(dummy_output))
     epsilon         = tf.constant(epsilon_mult * length_unit, dtype=tf.float32)
     step_size       = tf.constant(1., dtype=tf.float32)
     sup_ce          = tf.math.log(tf.constant(num_labels, dtype=tf.float32))
@@ -284,12 +288,13 @@ def complexity(model, dataset):
         lbda        = lbda / (epsilon*epsilon)  # divide by average length
     inf_dataset     = tf.constant(-math.inf, dtype=tf.float32)
     sup_dataset     = tf.constant( math.inf, dtype=tf.float32)
-    dilatation_rate = tf.constant(2.)
+    dilatation_rate = tf.constant(1.4)
     momentum        = False
     radii_only      = True
     acc_gap         = False
     verbose         = 0
     algo            = 'order1'
+    assert algo != 'radii' or batch_size == 1
     alpha           = -1
     beta            = -1
     avg_loss = adversarial_score(model, dataset, num_batchs_max,
