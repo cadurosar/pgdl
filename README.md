@@ -38,7 +38,7 @@ Given the timing constraints and the availability of the testing servers, we wer
 
 | Measure                        | Public | Final | Task1 Public | Task 2 Public | Task 6 Final | Task 7 Final | Task 8 Final | Task 9 Final |
 |--------------------------------|--------|-------|--------------|---------------|--------------|--------------|--------------|--------------|
-| M Smoothness Penultimate (G=1) | 6.26   | 13.04 | 6.07         | 6.44          | 13.90        | 7.56         | 16.23        | 2.28         |
+| M Smoothness Penultimate (G=1) | 6.26   | 9.99  | 6.07         | 6.44          | 13.90        | 7.56         | 16.23        | 2.28         |
 
 ## Scores on the public/development of other attempts
 
