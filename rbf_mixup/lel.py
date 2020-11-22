@@ -30,13 +30,17 @@ def knn_over_matrix(matrix,k):
     return weighted_adjacence_matrix
 
 @tf.function()
-def knn_tf(matrix,k):
-    values, indices = tf.nn.top_k(matrix, k=tf.cast(k+1,tf.int32), sorted=True)
+def knn_tf(matrix,k,identity=False):
+    if not identity:
+        k = k=tf.cast(k+1,tf.int32)
+    else:
+        k = k=tf.cast(k,tf.int32)
+    values, indices = tf.nn.top_k(matrix, k, sorted=True)
     thresholds = tf.reshape(values[:,-1],(-1,1))
     adjacence_matrix = tf.cast((matrix >= thresholds),tf.float32) # Create adjacence_matrix
-    adjacence_matrix = tf.linalg.set_diag(adjacence_matrix, tf.zeros(adjacence_matrix.shape[0:-1]))
-#    adjacence_matrix = tf.clip_by_value(adjacence_matrix+tf.transpose(adjacence_matrix),0,1)
-    adjacence_matrix = tf.clip_by_value(adjacence_matrix,0,1)
+    if not identity:
+        adjacence_matrix = tf.linalg.set_diag(adjacence_matrix, tf.zeros(adjacence_matrix.shape[0:-1]))
+    adjacence_matrix = tf.clip_by_value(adjacence_matrix+tf.transpose(adjacence_matrix),0,1)
     return adjacence_matrix #* matrix
     
 @tf.function()
@@ -47,7 +51,7 @@ def get_distances(A):
     D = r - 2*tf.matmul(A, A,transpose_b=True) + tf.transpose(r)
     return D
 
-@tf.function()
+#@tf.function()
 def RBF(values,gamma=1):
     distances = get_distances(values)
     std = tf.math.reduce_std(distances)
@@ -71,25 +75,32 @@ def cosine(values):
     return values
 
 @tf.function()
-def generate_laplacian(values,k=int(1),use_mask=False,mask=None):
+def create_graph(values,k,normalize="no",identity=False):
     values = tf.reshape(values,[values.shape[0],-1])
     values = tf.math.l2_normalize(values,axis=1)
     matrix = RBF(values)#.numpy()
 #    adj = RBF_knn(values,k)#.numpy()
 #    matrix = cosine(values)#.numpy()
-    if use_mask:
-        matrix = matrix*mask
-    adj = knn_tf(matrix,k)
-#    adj[adj > 0] = 1
-#    adj = adj+tf.eye(500)
-#    adj = matrix
+    adj = knn_tf(matrix,k,identity)
+    if normalize == "laplacian":
+        degree = tf.reduce_sum(adj,axis=1)
+        degree = tf.math.pow(degree,-0.5)
+        degree = tf.linalg.diag(degree)
+        adj = tf.matmul(degree,tf.matmul(adj,degree))
+    elif normalize == "randomwalk":
+        degree = tf.reduce_sum(adj,axis=1)
+        degree = tf.math.pow(degree,-1)
+        degree = tf.linalg.diag(degree)
+        adj = tf.matmul(degree,adj)
+
+    return adj
+
+@tf.function()
+def generate_laplacian(values,k=int(1),use_mask=False,mask=None,normalize="no"):
+    adj = create_graph(values,k,normalize=normalize)
     degree = tf.reduce_sum(adj,axis=1)
-    degree = tf.math.pow(degree,-0.5)
     degree = tf.linalg.diag(degree)
-    laplacian = tf.matmul(degree,tf.matmul(adj,degree))
-#    laplacian = tf.matmul(laplacian,laplacian)
-#    laplacian = degree - adj
-    laplacian = tf.eye(tf.shape(laplacian)[0]) - laplacian
+    laplacian = degree - adj
     return laplacian
 
 @tf.function()
@@ -124,25 +135,22 @@ def error(laplacian,signal):
 def mixup_output(model, x, y, one_hot, mix_policy, alpha=0):
     indexes = tf.random.shuffle(range(x.shape[0]))
     if alpha > 0:
-        lbda = np.random.beta(alpha, alpha, size=(y.shape[0],1)).astype(np.float32)
+        lbda = np.random.beta(alpha, alpha, size=(y.shape[0],1,1,1)).astype(np.float32)
     else:
         lbda = np.ones((y.shape[0],1)).astype(np.float32)
-    outputs = mix(model, mix_policy, x, indexes, lbda.reshape(-1,1,1,1))
-    shuffled_hot = tf.gather(one_hot, indexes)
-    one_hot = lbda*one_hot + (1.-lbda)*shuffled_hot
-    #one_hot2 = lbda*one_hot + (1.-lbda)*shuffled_hot
-    #one_hot = tf.concat([one_hot,one_hot2],0)
-    return outputs,one_hot
-
-@tf.function()
-def mix(model, mix_policy, x, indexes, lbda):
-    outputs = list()
     if mix_policy == 'input':
         shuffled = tf.gather(x, indexes)
-        # print(x.shape, shuffled.shape, (1.-lbda).shape, lbda.shape)
         mixed = lbda*x + (1.-lbda)*shuffled
-#        output = tf.concat([x,mixed],0)
-        output = model(mixed)
+        output = mixed
+        output = model(output)
+    elif mix_policy == "graph":
+        _input_shape = tf.shape(x)
+        #output = model(x)
+        adj = create_graph(x,k=5,normalize="randomwalk",identity=True)
+        _input = tf.matmul(adj,tf.reshape(x,(_input_shape[0],-1)))
+        output = model(tf.reshape(_input,_input_shape))
+        _one_hot = one_hot
+        one_hot = tf.matmul(adj,one_hot)
     elif mix_policy == 'manifold':
         length = len(model.layers)
         middle_index = length//2
@@ -163,11 +171,12 @@ def mix(model, mix_policy, x, indexes, lbda):
         mixed = output
     else:
         raise ValueError
-    for layer in model.layers:
-        outputs.append(layer._last_seen_input)
-    outputs.append(output)
-    return outputs
+        
+    if mix_policy != "graph":
+        shuffled_hot = tf.gather(one_hot, indexes)
+        one_hot = lbda*one_hot + (1.-lbda)*shuffled_hot
 
+    return output,one_hot
 
 def complexity(model, dataset):
     @tf.function()
@@ -183,17 +192,12 @@ def complexity(model, dataset):
         #for layer_output in [model.layers[-1]]:
         #    value = smoothness(generate_laplacian(layer_output._last_seen_input),one_hot)
         #    outputs.append(value)
-#        outputs.append(smoothness(generate_laplacian(model.layers[-1]._last_seen_input),one_hot))
-        outputs.append(smoothness(generate_laplacian(results[-2]),one_hot))
-#        outputs.append(smoothness(generate_laplacian(results[-2]),one_hot))
+        outputs.append(smoothness(generate_laplacian(results),one_hot))
         return outputs
-    print("start")
-    for x,y in dataset.batch(1):
-       output = model(x)
-       number_of_classes = output.shape[-1]
-       break
-    examples_per_class = 500//number_of_classes
-    print(number_of_classes,examples_per_class)
+    number_of_classes = 10 #All tasks for the moment have 10 classes
+    examples_per_class = 50
+#   for x,y in dataset.batch(100):
+#       number_of_classes = max(number_of_classes,np.max(y.numpy())+1)
     values = list()
     datasets = list()
     
@@ -213,7 +217,7 @@ def complexity(model, dataset):
 
         smoothnesses = get_smoothness(x,y)
         smoothness_rate = list()
-#        for ii in range(1,len(smoothnesses)):
-#            values.append(tf.math.abs(smoothnesses[ii-1]-smoothnesses[ii]))
-        values.append(tf.math.reduce_max(smoothnesses))
+        #for ii in range(1,len(smoothnesses)):
+        #    values.append(tf.math.abs(smoothnesses[ii-1]-smoothnesses[ii]))
+        values.append(tf.math.reduce_max(smoothnesses).numpy())
     return np.median(values)

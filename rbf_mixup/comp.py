@@ -89,7 +89,7 @@ def generate_laplacian(values,k=int(1),use_mask=False,mask=None):
     laplacian = tf.matmul(degree,tf.matmul(adj,degree))
 #    laplacian = tf.matmul(laplacian,laplacian)
 #    laplacian = degree - adj
-    laplacian = tf.eye(tf.shape(laplacian)[0]) - laplacian
+    laplacian = tf.eye(500) - laplacian
     return laplacian
 
 @tf.function()
@@ -124,6 +124,7 @@ def error(laplacian,signal):
 def mixup_output(model, x, y, one_hot, mix_policy, alpha=0):
     indexes = tf.random.shuffle(range(x.shape[0]))
     if alpha > 0:
+        #lbda = np.random.normal(0.5,0.1,size=(y.shape[0],1)).astype(np.float32)
         lbda = np.random.beta(alpha, alpha, size=(y.shape[0],1)).astype(np.float32)
     else:
         lbda = np.ones((y.shape[0],1)).astype(np.float32)
@@ -175,32 +176,29 @@ def complexity(model, dataset):
         """Get output from nn with respect to intermediate layers."""
 #       output = model(inputs)
         one_hot = tf.one_hot(labels,tf.reduce_max(labels)+1)
-        results, one_hot = mixup_output(model, inputs, labels, one_hot, "input",2.0)
+        results, one_hot = mixup_output(model, inputs, labels, one_hot, "input",3)
         outputs = list()
         layers_to_get = (len(model.layers)//3)+1
 #       layers_to_get = 3
 #        results = model.layers
-        #for layer_output in [model.layers[-1]]:
-        #    value = smoothness(generate_laplacian(layer_output._last_seen_input),one_hot)
-        #    outputs.append(value)
+        for layer_output in [results[-2]]:
+            value = smoothness(generate_laplacian(layer_output),one_hot)
+            outputs.append(value)
 #        outputs.append(smoothness(generate_laplacian(model.layers[-1]._last_seen_input),one_hot))
-        outputs.append(smoothness(generate_laplacian(results[-2]),one_hot))
+#        outputs.append(smoothness(generate_laplacian(results[-2]),one_hot))
 #        outputs.append(smoothness(generate_laplacian(results[-2]),one_hot))
         return outputs
-    print("start")
-    for x,y in dataset.batch(1):
-       output = model(x)
-       number_of_classes = output.shape[-1]
-       break
-    examples_per_class = 500//number_of_classes
-    print(number_of_classes,examples_per_class)
+    number_of_classes = 10 #All tasks for the moment have 10 classes
+    examples_per_class = 50
+#   for x,y in dataset.batch(100):
+#       number_of_classes = max(number_of_classes,np.max(y.numpy())+1)
     values = list()
     datasets = list()
     
     for a in range(number_of_classes):
         datasets.append(dataset.filter(lambda data, labels: tf.equal(labels, a)).repeat().shuffle(100).batch(examples_per_class).__iter__()) 
 
-    for kk in range(1): # number of graphs
+    for kk in range(80): # number of graphs
         x = list()
         y = list()
         for data in datasets:
@@ -215,5 +213,5 @@ def complexity(model, dataset):
         smoothness_rate = list()
 #        for ii in range(1,len(smoothnesses)):
 #            values.append(tf.math.abs(smoothnesses[ii-1]-smoothnesses[ii]))
-        values.append(tf.math.reduce_max(smoothnesses))
+        values.append(tf.math.reduce_min(smoothnesses))
     return np.median(values)

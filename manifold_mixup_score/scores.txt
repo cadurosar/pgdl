@@ -1,0 +1,4 @@
+task_task1_v4_score: 0.012622602804
+task_task2_v1_score: 0.034292865863
+task_average_score: 2.345773433340
+Duration: 0

@@ -153,6 +153,7 @@ def conditional_mutual_information(prediction, model_specs):
         model_metrics = model_specs[mid]['metrics']
         model_metrics['gen_gap'] = model_metrics['train_acc'] - model_metrics['test_acc']
         reference[mid] = model_metrics['gen_gap']
+
     # get names of the hyerparameters
     all_mid = list(model_specs.keys())
     hp_names = list(model_specs[all_mid[0]]['hparams'].keys())
@@ -168,3 +169,27 @@ def conditional_mutual_information(prediction, model_specs):
             mi = total_mi_from_table(table)
             min_mi = min(mi, min_mi)
     return min_mi
+
+from scipy.stats import pearsonr
+def correlation(prediction, model_specs):
+    #model_specs = copy.deepcopy(model_specs)
+    model_specs_copy = {}
+    for mid in model_specs:
+        if 'model' not in mid:
+            model_specs_copy['model_{}'.format(mid)] = model_specs[mid]
+        else:
+            model_specs_copy[mid] = model_specs[mid]
+    model_specs = model_specs_copy
+    # compute and store generalization gap
+    reference = {}
+    values_metric = list()
+    values_gen_gap = list()
+    for mid in model_specs:
+        model_metrics = model_specs[mid]['metrics']
+        params = model_specs[mid]["hparams"]
+        model_metrics['gen_gap'] = model_metrics['train_acc'] - model_metrics['test_acc']
+        reference[mid] = model_metrics['gen_gap']
+        values_metric.append(prediction[mid])
+        values_gen_gap.append(reference[mid])
+    correlation = pearsonr(values_metric,values_gen_gap)
+    return abs(correlation[0])
