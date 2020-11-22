@@ -192,4 +192,4 @@ def correlation(prediction, model_specs):
         values_metric.append(prediction[mid])
         values_gen_gap.append(reference[mid])
     correlation = pearsonr(values_metric,values_gen_gap)
-    return abs(correlation[0])
+    return abs(correlation[0]),values_metric,values_gen_gap
