@@ -1,97 +1,53 @@
-This is a sample starting kit for Predicting Generalization in Deep Learning challenge at NeurIPS 2020.
+# PGDL 2020 competition submission repository BrAIn
 
-Prerequisites:
-- Python 3.6.6
-- Tensorflow 2.0
-- pandas
-- pyyaml
-- scikit-learn
+This is our submission repo for the PGDL 2020 competition.
 
-Usage:
+## How to ingest and score on public data:
 
-(1) If you are a challenge participant:
+### 1) Ingest:
 
-- The three files in sample_code_submission.zip are sample submissions ready to go!
+#### Usage:
 
-- modify sample_code_submission to provide a better predictor
+```
+TF_CPP_MIN_LOG_LEVEL=3 python ingestion_program/ingestion_tqdm.py {INPUT_DATA_PATH} ingestions/{SUBMISSION_NAME} ingestion_program {SUBMISSION_NAME}
+```
+#### Example:
 
-- zip the contents of sample_code_submission (without the directory, but with metadata), or
+```
+TF_CPP_MIN_LOG_LEVEL=3 python ingestion_program/ingestion_tqdm.py ../public_data/input_data/ ingestions/ ingestion_program M_smoothness_penultimate_1/
+```
 
-- to verify your code will run properly (double check you are running the correct version of python):
+### 2) Score:
 
-  `python ingestion_program/ingestion.py sample_data sample_result_submission ingestion_program sample_code_submission`
+#### Usage:
 
-- if you wish to test on the larger public data, download the public data and run:
+```
+python scoring_program/score.py {REFERENCE_DATA_PATH} ingestions/{SUBMISSION_NAME} scores/{SUBMISSION_NAME}
+```
+#### Example:
 
-  `python ingestion_program/ingestion.py **path/to/public/input_data** sample_result_submission ingestion_program sample_code_submission`
+```
+python scoring_program/score.py ../public_data/reference_data/ ingestions/M_smoothness_penultimate_1/ scores/M_smoothness_penultimate_1/
+```
 
-- if you wish to compute the score of your submission locally, you can run the scoring program:
+## Scores
 
-  `python scoring_program/score.py **path/to/public/reference_data** **path/to/prediction** **path/to/output**`
+Given the timing constraints and the availability of the testing servers, we were only able to test our final submission on public and final, while our other attemps have been only tested on public/development. When the full data is available we would like to unify both tables. 
 
-The `baselines` directory contains a number of baselines that you may use as your starting points. If you are not familiar with the
-Keras framework, these baselines should get you up to speed.
+## Scores on the public/final of the submission 
 
-# Scores on the public set/private set
+| Measure                        | Public | Final | Task1 Public | Task 2 Public | Task 6 Final | Task 7 Final | Task 8 Final | Task 9 Final |
+|--------------------------------|--------|-------|--------------|---------------|--------------|--------------|--------------|--------------|
+| M Smoothness Penultimate (G=1) | 6.26   | 13.04 | 6.07         | 6.44          | 13.90        | 7.56         | 16.23        | 2.28         |
 
-Tables generated with https://www.tablesgenerator.com/markdown_tables:
+## Scores on the public/development of other attempts
 
-|                  Measure                  | Public | Private | Task1 Public | Task 2 Public | Task 4 Private | Task 5 Private |
-|:-----------------------------------------:|:------:|:-------:|:------------:|:-------------:|:--------------:|:--------------:|
-| Baseline 1 - Distance from initialization |  4.92  |   2.02  |     5.13     |      4.71     |      2.78      |      1.26      |
-|           Baseline 2 - Jacobian           |  2.04  | **4.19**|     0.94     |      3.15     |      1.09      |      7.30      |
-|           Baseline 3 - Sharpness          |  0.00  |   0.82  |     0.00     |      0.00     |      0.85      |      0.79      |
-|           Baseline 4 - VC Dimension       |  0.02  |   0.04  |     0.00     |      0.00     |      0.85      |      0.79      |
-|  Smoothness Gap (Cos 10 500-graphs-k=20)  |  14.45 |   0.72  |     9.31     |      19.58    |      0.44      |      1.00      |
-|  Smoothness Last (RBF 20 500-graphs-k=50) |  9.38  |   1.38  |     8.17     |      10.58    |      1.71      |      1.06      |
-|  Smoothness Gap (RBF 20 500-graphs-k=50)  |  5.47  |         |     4.95     |      6.00     |                |                |
-|  Smoothness Max (Binary 1 550-graphs-k=1) |**32.6**|   0.37  |     27.74    |      37.44    |      0.21      |      0.55      |
-|                Margin gap                 |  3.04  |   2.59  |     2.13     |      3.96     |      3.96      |      1.22      |
-|         Input Mixup (256x256 samples)     |        |   3.63  |              |               |      0.41      |      6.85      |
-|      Lipschitz Norm (128x256 samples)     |        |   4.24  |              |               |      1.25      |      7.21      |
-|               One Lipschitz               |        |   4.27  |              |               |      1.23      |      7.31      |
-|         Input Mixup Lipschitz Norm        |        |   4.35  |              |               |      1.18      |      7.52      |
-|            SoftMax Lipschitz Norm         |        |   5.55  |              |               |      1.78      |      9.32      |
-|  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |  15.6  |   5.99  |     6.31     |      24.35    |      7.88      |      4.10      |
-|  MIXUP Smoothness Last (Binary 100 500-graphs-k=1) |  16.04  |   7.29  |     3.12     |      28.97    |      9.34      |      5.37      |
-|  MIXUP Smoothness Penultimate (Binary 100 500-graphs-k=1 normalized) |  11.17  |   13.04  |     4.80     |      17.54    |      15.42      |      10.66      |
-|      Catastrophic Forgetting Measure      |        |   0.68  |              |               |      0.61      |      0.74      |
-|            Adversarial Radii              |  16.37 |   9.26  |     15.63    |     17.11     |      17.61     |      0.92      |
-|         Big Adversarial Radii             |  17.80 |   8.26  |     16.31    |     19.28     |      15.82     |      0.71      |
-|         Weighted Inverse Radii            |  13.99 |   3.26  |     12.84    |     15.14     |      05.35     |      1.18      |  
-|               Laplacian                   |  10.49 |   5.88  |     08.14    |     12.83     |      10.86     |      0.89      |
-|             Norm Gradient                 |  06.16 |   5.32  |     04.17    |     08.15     |      02.48     |      8.16      |
-|               Hutchinson                  |  02.35 |   8.39  |     00.78    |     03.92     |      09.51     |      7.27      |
-|              Norm of Norm                 |  06.53 |   5.42  |     05.05    |     08.00     |      02.20     |      8.65      |
-|                 Mixed                     |  05.38 |   4.66  |     06.79    |     08.00     |      02.80     |      6.52      |
-|             Log Lipschitz                 |  04.43 |         |     06.43    |     02.42     |                |                |
-|       Negative Log Lipschitz              |  04.86 |         |     06.18    |     03.54     |                |                |
-|             Inv Lipschitz                 |  16.11 |         |     10.94    |     21.28     |                |                |
+| Measure                         | Public   | Development | Task1 Public | Task 2 Public | Task 4 Dev | Task 5 Dev |
+|---------------------------------|----------|-------------|--------------|---------------|------------|------------|
+| Smoothness Rate (G=11)          | 14.45    | 0.72        | 9.31         | 19.58         | 0.44       | 1.00       |
+| Worst case smoothness (G=1)     | **32.6** | 0.37        | 27.74        | 37.44         | 0.21       | 0.55       |
+| M Smoothness Penultimate (G=80) | 11.17    | 13.04       | 4.80         | 17.54         | 15.42      | 10.66      |
 
-# Time spent on the public set/private set
+## All attempts:
 
-|                  Time (min)               | Task1 Public | Task 2 Public | Task 4 Private | Task 5 Private |
-|:-----------------------------------------:|:------------:|:-------------:|:--------------:|:--------------:|
-|          *Maximum time allowed*           |    *480*     |    *270*      |      *480*     |     *320*      |
-| Baseline 1 - Distance from initialization |              |               |       0.46     |     0.26       |
-|           Baseline 2 - Jacobian           |              |               |       104      |     67         |
-|           Baseline 3 - Sharpness          |              |               |       190      |      103       |
-|           Baseline 4 - VC Dimension       |              |     0.5       |       190      |      103       |
-|  Smoothness Gap (Cos 10 500-graphs-k=20)  |      6       |     3         |       15       |     10         |
-|                Margin gap                 |      38      |       26      |       81       |       51       |
-|         Input Mixup (256x256 samples)     |              |               |       118      |       75       |
-|      Lipschitz Norm (128x256 samples)     |              |               |       193      |       120      |
-|               One Lipschitz               |              |               |       346      |       217      |
-|         Input Mixup Lipschitz Norm        |              |               |       90       |       56       |
-|            SoftMax Lipschitz Norm         |              |               |       188      |       117      |
-|  MIXUP Smoothness Last (RBF 100 500-graphs-k=5) |   472        |   110         |      143       |       103      |
-|  MIXUP Smoothness Penultimate (Binary 100 500-graphs-k=1 normalized) |   468        |   109         |      142       |       100      |
-|       Catastrophic Forgetting Measure     |              |               |       223      |       142      |
-|            Adversarial Radii              |      54      |       32      |       43       |       38       |
-|         Big Adversarial Radii             |      138     |       75      |       89       |       77       |
-|        Weighted Inverse Radii             |      117     |       44      |       192      |       152      |
-|                Laplacian                  |      152     |       108     |       230      |       135      |
-|               Norm Gradient               |      32      |       20      |       151      |        96      |
-|                Hutchinson                 |      93      |       57      |       248      |       155      |
-|               Norm of Norm                |      51      |       42      |       114      |        73      |
-|                   Mixed                   |      148     |       82      |       172      |       132      |
+We tested more combinations than we present in the master branch. All other tests are available in all_tests.
