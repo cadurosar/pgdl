@@ -1,0 +1,11 @@
+description: >
+    Median smoothness of graph label signals using input mixup to generate the examples;
+    Similar to the approach from https://cadurosar.github.io/papers/GSP2018.pdf.
+    More details will be given in a workshop style paper, if organizers ask us to do it.
+
+
+Algue: Louis Bethune, louis.bethune@ens-lyon.fr
+cadurosar: Carlos Lassance, cadurosar@gmail.com
+mbonto: Myriam Bontonou, myriam.bontonou@imt-atlantique.fr
+mounia: Mounia Hamidouche, mounia.hamidouche@imt-atlantique.fr	
+vgripon: Vincent Gripon, vincent.gripon@imt-atlantique.fr
