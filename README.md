@@ -16,7 +16,7 @@ TF_CPP_MIN_LOG_LEVEL=3 python ingestion_program/ingestion_tqdm.py {INPUT_DATA_PA
 #### Example:
 
 ```
-TF_CPP_MIN_LOG_LEVEL=3 python ingestion_program/ingestion_tqdm.py ../public_data/input_data/ ingestions/ ingestion_program VPM_1/
+TF_CPP_MIN_LOG_LEVEL=3 python ingestion_program/ingestion_tqdm.py ../public_data/input_data/ ingestions/VPM_1 ingestion_program VPM_1/
 ```
 
 ### 2) Score:
