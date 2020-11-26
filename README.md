@@ -1,6 +1,8 @@
 # PGDL 2020 competition submission repository BrAIn - 3rd place
 
-This is our submission repo for the PGDL 2020 competition. Our final submission is available in final_submission.zip. In the following we detail how to evaluate our 3 metrics on the public set. The public data is available [here](https://competitions.codalab.org/my/datasets/download/65b7f00a-4705-48cd-8bac-fc36021b0d69). A preprint detailing our submission will be soon made available. Code still refers to the measure as smoothness instead of variation, note that what we compute is the variation and that the smoothness is the inverse of variation, when variation is small -> signal is smooth and vice-versa.
+This is our submission repo for the PGDL 2020 competition. Our final submission is available in final_submission.zip and the VPM_1 folder. A preprint detailing our solution is available [here](https://arxiv.org/abs/2011.12737). 
+
+In the following we detail how to evaluate our 3 metrics on the public set. Note that the public data has to be downloaded separately from [here](https://competitions.codalab.org/my/datasets/download/65b7f00a-4705-48cd-8bac-fc36021b0d69). 
 
 ## How to ingest and score on public data:
 
@@ -47,6 +49,10 @@ Given the timing constraints and the availability of the testing servers, we wer
 | VR (G=11)          | 14.45    | 0.72        | 9.31         | 19.58         | 0.44       | 1.00       |
 | WCV (G=1)     | **32.6** | 0.37        | 27.74        | 37.44         | 0.21       | 0.55       |
 | VPM (G=80) | 11.17    | 13.04       | 4.80         | 17.54         | 15.42      | 10.66      |
+
+## Note on smoothness and variation
+
+Our code still refers to the measure as smoothness instead of variation. Note that what we compute is better suited to be called variation and that the smoothness is the inverse of variation. When the metric(variation/smoothness) is small -> the signal is said to be smooth and vice-versa.
 
 ## All attempts:
 
